@@ -45,7 +45,7 @@ export function mountApp(root: HTMLElement, storage: Storage): void {
   let player: SessionPlayer | null = null;
 
   root.innerHTML = `
-    <h1>聲樂音階練習</h1>
+    <h1>Vocal Exercises Piano</h1>
 
     <div class="panel">
       <div class="row">

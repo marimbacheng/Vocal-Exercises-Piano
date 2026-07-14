@@ -11,8 +11,8 @@ export default defineConfig({
       // public/ 內非 build 產物的資產也要進 precache
       includeAssets: ['apple-touch-icon.png', 'icon-192.png', 'icon-512.png'],
       manifest: {
-        name: '聲樂音階練習',
-        short_name: '音階練習',
+        name: 'Vocal Exercises Piano',
+        short_name: 'Vocal Piano',
         description: '取樣鋼琴音色的聲樂音階練習,自動半音移調,可離線使用。',
         start_url: './',
         scope: './',
