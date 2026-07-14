@@ -1,0 +1,157 @@
+:root {
+  --bg: #111;
+  --panel: #1c1c1e;
+  --panel-2: #262629;
+  --text: #eee;
+  --muted: #9a9aa0;
+  --accent: #4f9dff;
+  --accent-press: #2f7de0;
+  --warn: #ff5b5b;
+  --warn-bg: #3a1414;
+  --ok: #43c06a;
+  --line: #333;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Helvetica Neue", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+#app {
+  max-width: 30rem;
+  margin: 0 auto;
+  padding: 1rem 1rem 6rem;
+}
+
+h1 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0.5rem 0 1rem;
+}
+
+.panel {
+  background: var(--panel);
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-height: 48px;
+}
+.row + .row { border-top: 1px solid var(--line); }
+
+.row label { color: var(--muted); font-size: 0.9rem; }
+
+.row .value {
+  font-variant-numeric: tabular-nums;
+  font-size: 1.05rem;
+  min-width: 3.5rem;
+  text-align: right;
+}
+
+select {
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.5rem;
+  font-size: 0.95rem;
+  min-height: 44px;
+  max-width: 60%;
+}
+
+.stepper { display: flex; align-items: center; gap: 0.5rem; }
+.stepper .value { min-width: 3rem; }
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.step-btn {
+  width: 44px;
+  height: 44px;
+  font-size: 1.4rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+.step-btn:active { background: var(--accent-press); }
+
+input[type="range"] { flex: 1; accent-color: var(--accent); min-height: 44px; }
+
+/* 音域回饋 */
+.range-feedback { font-size: 0.95rem; line-height: 1.6; }
+.range-feedback .hi, .range-feedback .lo { font-weight: 600; }
+.range-feedback.warn {
+  background: var(--warn-bg);
+  color: var(--warn);
+  border: 1px solid var(--warn);
+}
+.range-feedback .problem { color: var(--warn); font-size: 0.85rem; }
+
+/* 即時演唱狀態 */
+.now-playing { text-align: center; padding: 1.25rem 1rem; }
+.now-root { font-size: 1rem; color: var(--muted); }
+.now-note {
+  font-size: 2.6rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  margin: 0.25rem 0;
+  min-height: 3rem;
+}
+.now-note.pulse { animation: pulse 0.18s ease-out; }
+@keyframes pulse {
+  0% { transform: scale(1.18); color: var(--accent); }
+  100% { transform: scale(1); color: var(--text); }
+}
+.now-progress { color: var(--muted); font-size: 0.95rem; }
+.now-state { color: var(--muted); font-size: 0.8rem; margin-top: 0.25rem; }
+
+/* 底部固定控制列 */
+.controls {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom));
+  background: linear-gradient(to top, var(--bg) 70%, transparent);
+  max-width: 30rem;
+  margin: 0 auto;
+}
+.controls button {
+  flex: 1;
+  min-height: 56px;
+  min-width: 56px;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+.controls .primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+.controls .primary:active { background: var(--accent-press); }
+.controls .primary:disabled { background: var(--panel-2); color: var(--muted); }
+
+details { color: var(--muted); font-size: 0.85rem; margin-top: 1rem; }
+details summary { cursor: pointer; padding: 0.5rem 0; }
+details a { color: var(--accent); }
+footer { color: var(--muted); font-size: 0.75rem; margin-top: 1rem; line-height: 1.5; }
+footer a { color: var(--accent); }
