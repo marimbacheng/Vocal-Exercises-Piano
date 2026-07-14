@@ -6,6 +6,7 @@ import type { SessionParams } from '../session/plan.ts';
 import { computeSungRange, checkSungRange } from '../session/range.ts';
 import { SCALES } from '../theory/scale.ts';
 import { PATTERNS, parsePatternDsl } from '../theory/pattern.ts';
+import { degreeToSemitone } from '../theory/degree.ts';
 import { midiToName } from '../theory/note-name.ts';
 import {
   loadParams,
@@ -47,22 +48,18 @@ export function mountApp(root: HTMLElement, storage: Storage): void {
   root.innerHTML = `
     <header class="app-header">
       <div class="app-title">Vocal Exercises Piano</div>
-      <div class="app-sub">聲樂音階練習 · WARM-UP</div>
     </header>
 
     <div class="display">
-      <div class="display-grid" aria-hidden="true"></div>
       <div class="display-head">
         <span class="display-root" id="now-root">起音 —</span>
         <span class="display-progress" id="now-progress"></span>
       </div>
-      <div class="display-note" id="now-note">—</div>
-      <div class="display-status" id="now-state"></div>
-    </div>
-
-    <div class="section">
-      <div class="section-label">音階 <span>· SCALE</span></div>
-      <select id="scale" class="soft-select"></select>
+      <div class="contour" id="contour" aria-hidden="true"></div>
+      <div class="display-foot">
+        <span class="display-note" id="now-note">—</span>
+        <span class="display-status" id="now-state"></span>
+      </div>
     </div>
 
     <div class="section">
@@ -134,13 +131,13 @@ export function mountApp(root: HTMLElement, storage: Storage): void {
   `;
 
   const $ = <T extends HTMLElement>(id: string) => root.querySelector<T>(`#${id}`)!;
-  const scaleSel = $<HTMLSelectElement>('scale');
   const patternSel = $<HTMLSelectElement>('pattern');
   const bpmSlider = $<HTMLInputElement>('bpm');
   const rangePanel = $('range');
   const rangeHi = $('range-hi');
   const rangeLo = $('range-lo');
   const rangeProblem = $('range-problem');
+  const contour = $('contour');
   const nowRoot = $('now-root');
   const nowNote = $('now-note');
   const nowProgress = $('now-progress');
@@ -148,9 +145,6 @@ export function mountApp(root: HTMLElement, storage: Storage): void {
   const playBtn = $<HTMLButtonElement>('play');
   const stopBtn = $<HTMLButtonElement>('stop');
 
-  for (const s of SCALES) {
-    scaleSel.add(new Option(s.name, s.id));
-  }
   for (const p of PATTERNS) {
     patternSel.add(new Option(p.name, p.id));
   }
@@ -169,7 +163,6 @@ export function mountApp(root: HTMLElement, storage: Storage): void {
   }
 
   function refreshParamDisplay(): void {
-    scaleSel.value = params.scaleId;
     patternSel.value = params.patternId;
     bpmSlider.value = String(params.bpm);
     $('start-val').textContent = midiToName(params.startRoot);
@@ -186,7 +179,7 @@ export function mountApp(root: HTMLElement, storage: Storage): void {
 
     // 實際發聲中禁用參數;paused 時開放編輯(改了會從第一組重跑)
     const disableParams = isPlaying();
-    for (const el of [scaleSel, patternSel, bpmSlider]) el.disabled = disableParams;
+    for (const el of [patternSel, bpmSlider]) el.disabled = disableParams;
     for (const id of ['start-dn', 'start-up', 'top-dn', 'top-up', 'gap-dn', 'gap-up']) {
       $<HTMLButtonElement>(id).disabled = disableParams;
     }
@@ -214,6 +207,7 @@ export function mountApp(root: HTMLElement, storage: Storage): void {
     if (!isActive()) {
       nowNote.textContent = '—';
       nowProgress.textContent = '';
+      highlightContour(-1);
     }
     refreshParamDisplay();
   }
@@ -223,6 +217,29 @@ export function mountApp(root: HTMLElement, storage: Storage): void {
     nowNote.classList.remove('pulse');
     void nowNote.offsetWidth; // 強制 reflow 以重啟動畫
     nowNote.classList.add('pulse');
+  }
+
+  /** 依目前音型畫出音高輪廓:每個音一個點,x=序號、y=音高(高在上) */
+  function renderContour(): void {
+    const notes = currentPatternNotes();
+    const semis = notes.map((n) => degreeToSemitone(n.degree, currentScale()));
+    const min = Math.min(...semis);
+    const span = Math.max(...semis) - min || 1;
+    const n = notes.length;
+    contour.innerHTML = notes
+      .map((_, i) => {
+        const x = n === 1 ? 50 : 8 + (i / (n - 1)) * 84;
+        const y = 84 - ((semis[i] - min) / span) * 68; // 高音→小 y→靠上
+        return `<span class="dot" data-i="${i}" style="left:${x}%;top:${y}%"></span>`;
+      })
+      .join('');
+  }
+
+  /** 高亮第 idx 個音的點(idx < 0 為清除) */
+  function highlightContour(idx: number): void {
+    for (const dot of contour.querySelectorAll<HTMLElement>('.dot')) {
+      dot.classList.toggle('active', Number(dot.dataset.i) === idx);
+    }
   }
 
   function makeSessionParams(): SessionParams {
@@ -244,8 +261,10 @@ export function mountApp(root: HTMLElement, storage: Storage): void {
   }
 
   // 參數事件
-  scaleSel.addEventListener('change', () => update((p) => (p.scaleId = scaleSel.value)));
-  patternSel.addEventListener('change', () => update((p) => (p.patternId = patternSel.value)));
+  patternSel.addEventListener('change', () => {
+    update((p) => (p.patternId = patternSel.value));
+    renderContour(); // 音型改變 → 重畫輪廓
+  });
   bpmSlider.addEventListener('input', () => update((p) => (p.bpm = Number(bpmSlider.value))));
 
   bindStepper($('start-dn'), () =>
@@ -301,11 +320,14 @@ export function mountApp(root: HTMLElement, storage: Storage): void {
           syncWakeLock();
           refreshPlaybackDisplay();
         },
-        onRunChange: (i, count, r, dir) => {
-          nowRoot.textContent = `${midiToName(r)} ${dir === 'up' ? '↑' : '↓'}`;
-          nowProgress.textContent = `第 ${i + 1} / ${count} 次`;
+        onRunChange: (i, count, r) => {
+          nowRoot.textContent = `${midiToName(r)} 開始`;
+          nowProgress.textContent = `第 ${i + 1} / ${count} 組`;
         },
-        onNote: (midi) => pulseNote(midi),
+        onNote: (midi, idx) => {
+          pulseNote(midi);
+          highlightContour(idx);
+        },
       });
     }
     return player;
@@ -365,5 +387,6 @@ export function mountApp(root: HTMLElement, storage: Storage): void {
     refreshPlaybackDisplay();
   });
 
+  renderContour();
   refreshPlaybackDisplay();
 }

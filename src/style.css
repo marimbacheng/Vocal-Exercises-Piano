@@ -52,70 +52,71 @@ body {
   margin-top: 0.25rem;
 }
 
-/* 顯示面板(頂部,格線背景) */
+/* 顯示面板(頂部,精簡;音高輪廓圖示) */
 .display {
-  position: relative;
-  overflow: hidden;
   background: var(--display-bg);
   border: 1px solid var(--line);
-  border-radius: 16px;
-  padding: 1rem 1.1rem 1.25rem;
-  min-height: 9.5rem;
-  display: flex;
-  flex-direction: column;
+  border-radius: 14px;
+  padding: 0.7rem 0.9rem 0.8rem;
   margin-bottom: 1.5rem;
 }
-.display-grid {
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(var(--grid) 1px, transparent 1px),
-    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
-  background-size: 2.25rem 2.25rem;
-  -webkit-mask-image: radial-gradient(120% 90% at 50% 40%, #000 55%, transparent 100%);
-          mask-image: radial-gradient(120% 90% at 50% 40%, #000 55%, transparent 100%);
-  pointer-events: none;
-}
 .display-head {
-  position: relative;
   display: flex;
   justify-content: space-between;
   align-items: baseline;
   font-family: var(--mono);
-  font-size: 0.78rem;
-  letter-spacing: 0.06em;
+  font-size: 0.76rem;
+  letter-spacing: 0.04em;
 }
 .display-root { color: var(--accent-soft); }
 .display-progress { color: var(--muted); }
-.display-note {
+
+/* 音高輪廓:點的水平位置=序號、垂直位置=音高 */
+.contour {
   position: relative;
-  flex: 1;
+  height: 56px;
+  margin: 0.5rem 0 0.35rem;
+}
+.contour .dot {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--muted);
+  transform: translate(-50%, -50%);
+  transition: background 0.12s, box-shadow 0.12s, width 0.12s, height 0.12s;
+}
+.contour .dot.active {
+  width: 12px;
+  height: 12px;
+  background: var(--accent-soft);
+  box-shadow: 0 0 12px var(--accent-glow);
+}
+
+.display-foot {
   display: flex;
-  align-items: center;
-  justify-content: center;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.display-note {
   font-family: var(--mono);
-  font-size: 3rem;
+  font-size: 1.5rem;
   font-weight: 600;
   letter-spacing: 0.02em;
   color: var(--text);
-  text-shadow: 0 0 18px transparent;
-  transition: color 0.15s;
 }
-.display-note.pulse {
-  animation: pulse 0.22s ease-out;
-}
+.display-note.pulse { animation: pulse 0.2s ease-out; }
 @keyframes pulse {
-  0% { transform: scale(1.14); color: var(--accent-soft); text-shadow: 0 0 22px var(--accent-glow); }
-  100% { transform: scale(1); color: var(--text); text-shadow: 0 0 18px transparent; }
+  0% { color: var(--accent-soft); text-shadow: 0 0 14px var(--accent-glow); }
+  100% { color: var(--text); text-shadow: 0 0 14px transparent; }
 }
 .display-status {
-  position: relative;
-  min-height: 1rem;
-  text-align: center;
   font-family: var(--mono);
-  font-size: 0.72rem;
-  letter-spacing: 0.04em;
+  font-size: 0.7rem;
+  letter-spacing: 0.03em;
   color: var(--accent);
+  text-align: right;
 }
 
 /* 分區與標題 */

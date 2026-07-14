@@ -16,6 +16,8 @@ export type NoteEvent = {
   beats: number;
   midi: number;
   runIndex: number;
+  /** 此音在 pattern 中的序號(0-based),供 UI 音型輪廓高亮 */
+  indexInRun: number;
   root: number;
 };
 
@@ -83,13 +85,15 @@ export function buildSessionTimeline(params: SessionParams): SessionTimeline {
 
   for (let i = 0; i < roots.length; i++) {
     const root = roots[i];
-    for (const note of pattern) {
+    for (let noteIdx = 0; noteIdx < pattern.length; noteIdx++) {
+      const note = pattern[noteIdx];
       events.push({
         kind: 'note',
         atBeat: beat,
         beats: note.beats,
         midi: degreeToMidi(note.degree, root, scale),
         runIndex: i,
+        indexInRun: noteIdx,
         root,
       });
       beat += note.beats;

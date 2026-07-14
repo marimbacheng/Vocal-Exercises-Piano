@@ -8,7 +8,7 @@ export type SessionCallbacks = {
   onStateChange?: (state: SessionState) => void;
   /** run 進入時觸發。direction:上行(含 topRoot)↑、下行 ↓ */
   onRunChange?: (runIndex: number, runCount: number, root: number, direction: 'up' | 'down') => void;
-  onNote?: (midi: number) => void;
+  onNote?: (midi: number, indexInRun: number) => void;
 };
 
 /**
@@ -116,7 +116,7 @@ export class SessionPlayer {
             durationSec,
             time
           );
-          this.callbacks.onNote?.(ev.midi);
+          this.callbacks.onNote?.(ev.midi, ev.indexInRun);
         }, at(ev.atBeat));
       } else {
         transport.schedule((time) => {
