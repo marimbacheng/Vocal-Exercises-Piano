@@ -47,3 +47,10 @@
 - 2026-07-14 中斷偵測(SPEC 3.5):audio/player.ts onAudioContextStateChange 監聽 rawContext statechange;app.ts 在 state≠running 且播放中 → player.pause() + interrupted 提示「已中斷(來電/切換 app)」。resume 前先 ensureAudioRunning() 讓 context 從 suspended 恢復。已驗完整循環:suspend→paused+提示→繼續→running→續播→finished。
 - 2026-07-14 清掉 audio/player.ts 的 M1 遺留死碼 playRun(已被 SessionPlayer 取代)。
 - 2026-07-14 M5 gate 四項的實機部分(加入主畫面啟動、實體靜音開關有聲、Wake Lock 螢幕不熄、來電後 paused)需使用者 iPhone 實測;桌機已驗全部程式路徑接線正確。
+
+## 部署
+- 2026-07-14 部署至 GitHub:repo marimbacheng/Vocal-Exercises-Piano(public),網址 https://marimbacheng.github.io/Vocal-Exercises-Piano/。
+- 2026-07-14 首次 push 遇 HTTP 400(curl 56):初始推送量(含 17 mp3)超過預設緩衝。修:git config http.postBuffer 524288000 + http.version HTTP/1.1,重試成功。
+- 2026-07-14 Pages 以 GitHub Actions 部署(gh api build_type=workflow);deploy.yml build 18s + deploy 10s 成功。線上驗證:資產全 200、無 404、頁面完整渲染、G5/C4 音域回饋正確。
+- 2026-07-14 .claude/settings.local.json 加入 .gitignore(本機權限設定,不進 public repo)。
+- 2026-07-14 M4 gate「部署 GitHub Pages 無 404」已達成(線上實測)。剩 M5 實機(iPhone 加入主畫面 + 撥電話驗靜音/Wake Lock/來電 paused)為使用者動作。
