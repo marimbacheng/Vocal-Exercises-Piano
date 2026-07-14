@@ -106,6 +106,7 @@ body {
   letter-spacing: 0.02em;
   color: var(--text);
 }
+.display-note .solfege { display: inline-block; min-width: 3.2ch; text-align: center; }
 .display-note.pulse { animation: pulse 0.2s ease-out; }
 @keyframes pulse {
   0% { color: var(--accent-soft); text-shadow: 0 0 14px var(--accent-glow); }

@@ -8,6 +8,8 @@ export type SessionParams = {
   startRoot: number;
   topRoot: number;
   gapBeats: number;
+  /** 三連音音型:換 key 只放一拍的新調提示和弦(結尾的 1-1 已收在 pattern 內) */
+  triplet?: boolean;
 };
 
 export type NoteEvent = {
@@ -66,7 +68,7 @@ export function buildTriad(root: number, scale: Scale): number[] {
  * 後半 next-key triad,新 key 和弦多拉長一拍)→ … → 最後一個 run 之後無 gap(SPEC 2.3)。
  */
 export function buildSessionTimeline(params: SessionParams): SessionTimeline {
-  const { scale, pattern, startRoot, topRoot, gapBeats } = params;
+  const { scale, pattern, startRoot, topRoot, gapBeats, triplet } = params;
   if (pattern.length === 0) throw new Error('pattern 不可為空');
   const roots = buildRootSequence(startRoot, topRoot);
   const events: TimelineEvent[] = [];
@@ -99,27 +101,41 @@ export function buildSessionTimeline(params: SessionParams): SessionTimeline {
       beat += note.beats;
     }
     if (i < roots.length - 1) {
-      const half = gapBeats / 2;
-      events.push({
-        kind: 'triad',
-        atBeat: beat,
-        beats: half,
-        midis: buildTriad(root, scale),
-        role: 'gapCurrent',
-        runIndex: i + 1,
-        root,
-      });
-      // 換 key 的和弦(下一個 key 的 triad)多拉長一拍,給演唱者更多換氣/定調時間
-      events.push({
-        kind: 'triad',
-        atBeat: beat + half,
-        beats: half + 1,
-        midis: buildTriad(roots[i + 1], scale),
-        role: 'gapNext',
-        runIndex: i + 1,
-        root: roots[i + 1],
-      });
-      beat += gapBeats + 1;
+      if (triplet) {
+        // 三連音音型:結尾的 1-1 已在 pattern 內收束,換 key 只放「一整拍的新調提示和弦」
+        events.push({
+          kind: 'triad',
+          atBeat: beat,
+          beats: 1,
+          midis: buildTriad(roots[i + 1], scale),
+          role: 'gapNext',
+          runIndex: i + 1,
+          root: roots[i + 1],
+        });
+        beat += 1;
+      } else {
+        const half = gapBeats / 2;
+        events.push({
+          kind: 'triad',
+          atBeat: beat,
+          beats: half,
+          midis: buildTriad(root, scale),
+          role: 'gapCurrent',
+          runIndex: i + 1,
+          root,
+        });
+        // 換 key 的和弦(下一個 key 的 triad)多拉長一拍,給演唱者更多換氣/定調時間
+        events.push({
+          kind: 'triad',
+          atBeat: beat + half,
+          beats: half + 1,
+          midis: buildTriad(roots[i + 1], scale),
+          role: 'gapNext',
+          runIndex: i + 1,
+          root: roots[i + 1],
+        });
+        beat += gapBeats + 1;
+      }
     }
   }
 

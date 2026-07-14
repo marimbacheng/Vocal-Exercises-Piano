@@ -150,8 +150,11 @@ export function mountApp(root: HTMLElement, storage: Storage): void {
   function currentScale() {
     return SCALES.find((s) => s.id === params.scaleId)!;
   }
+  function currentPattern() {
+    return PATTERNS.find((p) => p.id === params.patternId)!;
+  }
   function currentPatternNotes() {
-    return parsePatternDsl(PATTERNS.find((p) => p.id === params.patternId)!.dsl);
+    return parsePatternDsl(currentPattern().dsl);
   }
 
   function refreshParamDisplay(): void {
@@ -205,7 +208,10 @@ export function mountApp(root: HTMLElement, storage: Storage): void {
 
   /** 顯示首調唱名 / 簡譜(依當前音在音型中的級數) */
   function pulseNote(degree: number): void {
-    nowNote.textContent = `${degreeToSolfege(degree)} / ${degreeToJianpu(degree)}`;
+    // 首調唱名寬度不一(Sol 3 字母、Do 2 字母);固定寬置中,讓「/ 簡譜」不位移
+    nowNote.innerHTML =
+      `<span class="solfege">${degreeToSolfege(degree)}</span>` +
+      `<span class="jianpu"> / ${degreeToJianpu(degree)}</span>`;
     nowNote.classList.remove('pulse');
     void nowNote.offsetWidth; // 強制 reflow 以重啟動畫
     nowNote.classList.add('pulse');
@@ -241,6 +247,7 @@ export function mountApp(root: HTMLElement, storage: Storage): void {
       startRoot: params.startRoot,
       topRoot: params.topRoot,
       gapBeats: params.gapBeats,
+      triplet: currentPattern().triplet ?? false,
     };
   }
 

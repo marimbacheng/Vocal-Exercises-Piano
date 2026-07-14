@@ -125,7 +125,9 @@ export class SessionPlayer {
         }, at(ev.atBeat));
         if (ev.role === 'countIn') {
           transport.schedule(() => this.setState('countIn'), at(ev.atBeat));
-        } else if (ev.role === 'gapCurrent') {
+        } else if (ev.role === 'gapCurrent' || ev.role === 'gapNext') {
+          // 三連音音型只有 gapNext(無 gapCurrent),仍需進入 gap 狀態;
+          // 一般音型 gapCurrent 已先設 gap,gapNext 再設為 no-op(setState 去重)
           transport.schedule(() => this.setState('gap'), at(ev.atBeat));
         }
       }

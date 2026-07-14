@@ -39,6 +39,12 @@ Repo: https://github.com/marimbacheng/Vocal-Exercises-Piano
 - **顯示音名改首調唱名 / 簡譜**:`now-note` 由絕對音名(C4)改為當前音在音型中的級數 →「首調唱名 / 簡譜」(如 `Mi / 3`)。新增 `degreeToSolfege`/`degreeToJianpu`(note-name.ts,純函式);簡譜高/低八度用組合附加點 U+0307 / U+0323。`onNote` 由 midi 改查 `pattern[indexInRun].degree`。
 - **速度 80–130、間隔固定 2 拍**:`PARAM_LIMITS.bpm.max` 200→130;移除 TEMPO 的「間隔」stepper UI 與事件,`sanitizeParams` 強制 `gapBeats = FIXED_GAP_BEATS(2)`。`buildSessionTimeline` 仍接受任意 gapBeats(純邏輯測試不動)。
 - **ext-13 改 1/2 倍速**:每音 `beats` 由 0.33333→0.66666、末音 1→2,每組三連音由一拍變兩拍。整體放慢一半,degree 不變(range 測試不受影響)。
+- **三連音音型統一收尾 + 換 key**:`Pattern` 加 `triplet?: boolean`(ext-13、oct-rep4/hold/rep7);`SessionParams` 同步帶旗標。
+  - **結尾**收在三連音節奏:一般三連音末音 `1` → `1:0.66666 1:0.33333`(長短,共 1 拍);ext-13 因半速 → `1:1.33333 1:0.66666`(共 2 拍,保留原總長)。
+  - **換 key 間隔**:`buildSessionTimeline` 遇 `triplet` 時不放 gapCurrent,只放「一整拍的新調 1-3-5 提示和弦」(`gapNext`, beats=1),取代原本 current+next 兩段和弦。`player` 的 gap 狀態改由 gapCurrent **或** gapNext 觸發(三連音只有 gapNext)。落選:半速 ext-13 用 2 拍間隔——依使用者「一整拍」指示統一 1 拍。
+  - **八度頂音重複系列改三連音**:骨架 `1-3-5 / 8-8-8 / 8-5-3 / 1`,每組一拍。×4=4 個頂音(1 組 8-8-8 + 下行起音)、×7=7 個、長音=兩個整拍 8 夾在中間;名稱不變,僅節奏改三連音。
+- **音名顯示固定位置**:`now-note` 拆成 `.solfege`(固定寬 3.2ch 置中)+ `.jianpu`,解決 Sol(3 字母)vs Do/Mi(2 字母)造成「/ 簡譜」位移。
+- **音型改名**:同音三連→**八度大跳**(`1 8 1`)、一五一→**五度跳**(`1 5 1`)、延伸琶音音階去除「(三連音)」註記。id 不變(`unison-x3`/`fifth-lhl`)避免舊 localStorage patternId 失效。
 
 ## 已知陷阱(SPEC Section 7,實作時務必記得)
 
