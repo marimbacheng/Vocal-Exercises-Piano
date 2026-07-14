@@ -1,34 +1,40 @@
-# 聲樂音階練習 App(vocal-warmup-piano)
+# Vocal Exercises Piano
 
 ## 目標(一句話)
-純前端 PWA:以取樣鋼琴音色播放聲樂練習音型,自動半音移調(上行至上限後下行回起始音即停止),部署於 GitHub Pages,iPhone / Android 加入主畫面後可離線使用。
+純前端 PWA:取樣鋼琴音色播放聲樂練習音型,自動半音移調(上行至上限再下行回起始音),部署於 GitHub Pages,iPhone/Android 加主畫面後可離線使用。已上線:https://marimbacheng.github.io/Vocal-Exercises-Piano/
 
-完整規格見 [docs/SPEC.md](docs/SPEC.md)。每輪開工先讀本檔與 NOTES.md。
+## 技術棧
+Vite + TypeScript(strict)+ Vitest + Tone.js v15 + vite-plugin-pwa。vanilla TS(無框架)。`base: './'`。node 由 Homebrew 裝於 `/usr/local`(指令前需 `export PATH="/usr/local/bin:$PATH"`)。
 
-## 工作模式:milestone-gated(最高優先規則)
-**完成一個 milestone 後停下等驗收,不得自行推進到下一個 milestone。** 里程碑定義與驗收條件見 SPEC Section 6(M1 音訊核心 → M2 Session 引擎 → M3 UI 與參數 → M4 PWA 與離線 → M5 iOS 實機)。
+## 目錄結構
+```
+src/theory/    純函式:音階/級數/音型 DSL/音名(零依賴,可 node 測試)
+src/session/   plan(session 時間軸)、range(音域)、player(Tone 排程+狀態機)
+src/state/     params(參數 + localStorage,含 sanitize)
+src/audio/     sampler 載入、Tone 啟動、context 中斷偵測
+src/platform/  ios-audio(靜音 unlock)、wake-lock
+src/ui/app.ts  DOM 組裝 + 事件接線 + 音高輪廓(單一大檔)
+docs/          SPEC / ARCHITECTURE / DECISIONS / DEPLOYMENT
+```
 
-## 非目標(SPEC Section 0,明確排除,禁止 scope creep)
-- 不做錄音、不做音準偵測 / pitch detection
-- 不做多人、不做帳號、不做雲端同步
-- 不做節拍器獨立模式
-- 不做 A4 基準頻率調整(固定 A4 = 440 Hz)
-- 不做樂譜顯示 / 五線譜渲染
-- 不做 MIDI 輸入輸出
-
-## 已知風險 / 陷阱清單(SPEC Section 7,完整照錄)
-這些是「不知道就會 debug 三小時」的項目:
-
-1. **`-` 不可作為 pattern 分隔符** — 會與負數級數衝突。用空白。
-2. **`%` 運算子對負數的行為** — JS 的 `-1 % 7 === -1`,不是 6。degreeToSemitone 必須用 `((x % 7) + 7) % 7`。
-3. **iOS 靜音開關** — 見 SPEC 3.4.2。必須在首次手勢播放一段無聲 `<audio playsinline>` 設定 audio session,否則靜音模式下完全無聲。這是最常見的「app 沒聲音」false bug。
-4. **GitHub Pages 子路徑** — 絕對路徑資產會 404。Vite `base: './'`。
-5. **Service Worker 沒 cache 音檔** — 離線時 app 開得起來但完全無聲,是最尷尬的失敗模式。
-6. **`setTimeout` 排程** — 手機上必然 drift。用 Tone.Transport。
-7. **topRoot 是根音不是最高音** — 使用者若不看「本次最高演唱音」提示,設 topRoot=C5 + 八度音型 = 實際唱到 C6。這正是 SPEC 2.6 即時音域回饋存在的理由,不可省略。
-8. **Wake Lock 在 visibilitychange 後失效** — 需監聽並重新 request。
+## 關鍵慣例(不知道會踩坑)
+- **純邏輯不 import Tone**:theory/、session/plan、range、params 保持零音訊依賴,才能 node 測試。
+- **音符只排在 `Tone.Transport` ticks 上,禁用 setTimeout**(手機 drift)。
+- **速度是二分音符 BPM**:player 內 `quarterBpm = bpm × 2` 才是四分音符。
+- **degreeToSemitone 負數取模**用 `((x%7)+7)%7`(JS `-1%7===-1`)。
+- **pattern DSL 用空白分隔**(`-` 保留給負數級數);`degree` 或 `degree:beats`。
+- **SW 必須 precache 全部 mp3**,否則離線無聲。
+- 只用大調;`SCALES` 保留三音階資料供理論測試,UI 無選擇器。
+- 改動流程:`npm run test` 綠 + `npm run build` 乾淨 + 瀏覽器實測 → commit + push(Actions 自動部署)。
 
 ## 常用指令
-- `npm run dev` — Vite dev server
-- `npm run test` — Vitest(單次執行)
+- `npm run dev` — dev server(5173)
+- `npm run test` — Vitest 單次執行
 - `npm run build` — tsc 檢查 + vite build
+
+## 延伸文件(需要細節時才讀,平時不必載入)
+- [docs/SPEC.md](docs/SPEC.md) — 完整規格(名詞、資料模型、驗收條件、陷阱清單)
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — 模組職責、資料流、分層依賴。**要改架構或加模組前讀。**
+- [docs/DECISIONS.md](docs/DECISIONS.md) — 為什麼這樣選、排除了什麼、bug 修法。**動音訊時值 / iOS / 速度單位前必讀。**
+- [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) — CI/CD、rollback、上線後驗證、首次 push 的坑。**部署或發佈前讀。**
+- docs/STATE.md — 個人工作狀態(未進 repo);當前完成度、已知問題、待辦。
