@@ -8,8 +8,8 @@ export type SessionParams = {
   startRoot: number;
   topRoot: number;
   gapBeats: number;
-  /** 三連音音型:換 key 只放一拍的新調提示和弦(結尾的 1-1 已收在 pattern 內) */
-  triplet?: boolean;
+  /** 換 key 間隔只放「一整拍的新調提示和弦」(無當前調和弦);結尾已收在 pattern 內 */
+  singleChordGap?: boolean;
 };
 
 export type NoteEvent = {
@@ -68,7 +68,7 @@ export function buildTriad(root: number, scale: Scale): number[] {
  * 後半 next-key triad,新 key 和弦多拉長一拍)→ … → 最後一個 run 之後無 gap(SPEC 2.3)。
  */
 export function buildSessionTimeline(params: SessionParams): SessionTimeline {
-  const { scale, pattern, startRoot, topRoot, gapBeats, triplet } = params;
+  const { scale, pattern, startRoot, topRoot, gapBeats, singleChordGap } = params;
   if (pattern.length === 0) throw new Error('pattern 不可為空');
   const roots = buildRootSequence(startRoot, topRoot);
   const events: TimelineEvent[] = [];
@@ -101,18 +101,19 @@ export function buildSessionTimeline(params: SessionParams): SessionTimeline {
       beat += note.beats;
     }
     if (i < roots.length - 1) {
-      if (triplet) {
-        // 三連音音型:結尾的 1-1 已在 pattern 內收束,換 key 只放「一整拍的新調提示和弦」
+      if (singleChordGap) {
+        // 換 key 只放「一整拍的新調提示和弦」(結尾已在 pattern 內收束)。
+        // 速度是二分音符 BPM,一整拍 = 2 個四分拍,故 beats = 2(否則只佔半拍、聽感沒填滿)
         events.push({
           kind: 'triad',
           atBeat: beat,
-          beats: 1,
+          beats: 2,
           midis: buildTriad(roots[i + 1], scale),
           role: 'gapNext',
           runIndex: i + 1,
           root: roots[i + 1],
         });
-        beat += 1;
+        beat += 2;
       } else {
         const half = gapBeats / 2;
         events.push({
