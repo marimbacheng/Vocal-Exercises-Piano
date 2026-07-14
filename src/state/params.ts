@@ -7,13 +7,13 @@ export type AppParams = {
   patternId: string;
   startRoot: number; // MIDI 36–84
   topRoot: number; // MIDI 36–84,>= startRoot
-  bpm: number; // 二分音符 BPM 20–90(四分音符為其兩倍)
+  bpm: number; // 二分音符 BPM 80–200(四分音符為其兩倍)
   gapBeats: number; // 1–4
 };
 
 export const PARAM_LIMITS = {
   root: { min: 36, max: 84 },
-  bpm: { min: 20, max: 90 }, // 二分音符 BPM;實際四分音符 = 兩倍(40–180)
+  bpm: { min: 80, max: 200 }, // 二分音符 BPM;實際四分音符 = 兩倍(160–400)
   gapBeats: { min: 1, max: 4 },
 } as const;
 
@@ -22,7 +22,7 @@ export const DEFAULT_PARAMS: AppParams = {
   patternId: 'p5-x1',
   startRoot: 60, // C4
   topRoot: 72, // C5
-  bpm: 40, // 二分音符 40 = 四分音符 80
+  bpm: 80, // 二分音符 80 = 四分音符 160
   gapBeats: 2,
 };
 
