@@ -7,7 +7,7 @@ import { computeSungRange, checkSungRange } from '../session/range.ts';
 import { SCALES } from '../theory/scale.ts';
 import { PATTERNS, parsePatternDsl } from '../theory/pattern.ts';
 import { degreeToSemitone } from '../theory/degree.ts';
-import { midiToName } from '../theory/note-name.ts';
+import { midiToName, degreeToSolfege, degreeToJianpu } from '../theory/note-name.ts';
 import {
   loadParams,
   saveParams,
@@ -71,24 +71,24 @@ export function mountApp(root: HTMLElement, storage: Storage): void {
       <div class="section-label">音域 <span>· RANGE</span></div>
       <div class="panel">
         <div class="row">
-          <label>起始音</label>
+          <label>第一組起始音</label>
           <div class="stepper">
-            <button class="step-btn" id="start-dn" aria-label="起始音降低">−</button>
+            <button class="step-btn" id="start-dn" aria-label="第一組起始音降低">−</button>
             <span class="value" id="start-val"></span>
-            <button class="step-btn" id="start-up" aria-label="起始音升高">+</button>
+            <button class="step-btn" id="start-up" aria-label="第一組起始音升高">+</button>
           </div>
         </div>
         <div class="row">
-          <label>最高根音</label>
+          <label>最高組起始音</label>
           <div class="stepper">
-            <button class="step-btn" id="top-dn" aria-label="最高根音降低">−</button>
+            <button class="step-btn" id="top-dn" aria-label="最高組起始音降低">−</button>
             <span class="value" id="top-val"></span>
-            <button class="step-btn" id="top-up" aria-label="最高根音升高">+</button>
+            <button class="step-btn" id="top-up" aria-label="最高組起始音升高">+</button>
           </div>
         </div>
         <div class="feedback" id="range">
-          <div>本次最高演唱音 <span class="hi" id="range-hi"></span></div>
-          <div>本次最低演唱音 <span class="lo" id="range-lo"></span></div>
+          <div>本次最高音 <span class="hi" id="range-hi"></span></div>
+          <div>本次最低音 <span class="lo" id="range-lo"></span></div>
           <div class="problem" id="range-problem"></div>
         </div>
       </div>
@@ -101,14 +101,6 @@ export function mountApp(root: HTMLElement, storage: Storage): void {
           <label for="bpm">速度</label>
           <input type="range" id="bpm" min="${PARAM_LIMITS.bpm.min}" max="${PARAM_LIMITS.bpm.max}" step="1" />
           <span class="value mono" id="bpm-val"></span>
-        </div>
-        <div class="row">
-          <label>間隔</label>
-          <div class="stepper">
-            <button class="step-btn" id="gap-dn" aria-label="間隔減少">−</button>
-            <span class="value" id="gap-val"></span>
-            <button class="step-btn" id="gap-up" aria-label="間隔增加">+</button>
-          </div>
         </div>
       </div>
     </div>
@@ -168,7 +160,6 @@ export function mountApp(root: HTMLElement, storage: Storage): void {
     $('start-val').textContent = midiToName(params.startRoot);
     $('top-val').textContent = midiToName(params.topRoot);
     $('bpm-val').textContent = String(params.bpm);
-    $('gap-val').textContent = `${params.gapBeats} 拍`;
 
     const range = computeSungRange(currentPatternNotes(), currentScale(), params.startRoot, params.topRoot);
     const check = checkSungRange(range);
@@ -180,7 +171,7 @@ export function mountApp(root: HTMLElement, storage: Storage): void {
     // 實際發聲中禁用參數;paused 時開放編輯(改了會從第一組重跑)
     const disableParams = isPlaying();
     for (const el of [patternSel, bpmSlider]) el.disabled = disableParams;
-    for (const id of ['start-dn', 'start-up', 'top-dn', 'top-up', 'gap-dn', 'gap-up']) {
+    for (const id of ['start-dn', 'start-up', 'top-dn', 'top-up']) {
       $<HTMLButtonElement>(id).disabled = disableParams;
     }
     // 音域超標:idle 時 disable 開始(SPEC 2.5);播放/暫停中的按鈕是暫停/繼續,不受此限
@@ -212,8 +203,9 @@ export function mountApp(root: HTMLElement, storage: Storage): void {
     refreshParamDisplay();
   }
 
-  function pulseNote(midi: number): void {
-    nowNote.textContent = midiToName(midi);
+  /** 顯示首調唱名 / 簡譜(依當前音在音型中的級數) */
+  function pulseNote(degree: number): void {
+    nowNote.textContent = `${degreeToSolfege(degree)} / ${degreeToJianpu(degree)}`;
     nowNote.classList.remove('pulse');
     void nowNote.offsetWidth; // 強制 reflow 以重啟動畫
     nowNote.classList.add('pulse');
@@ -282,12 +274,6 @@ export function mountApp(root: HTMLElement, storage: Storage): void {
   bindStepper($('top-up'), () =>
     update((p) => (p.topRoot = Math.min(PARAM_LIMITS.root.max, p.topRoot + 1)))
   );
-  bindStepper($('gap-dn'), () =>
-    update((p) => (p.gapBeats = Math.max(PARAM_LIMITS.gapBeats.min, p.gapBeats - 1)))
-  );
-  bindStepper($('gap-up'), () =>
-    update((p) => (p.gapBeats = Math.min(PARAM_LIMITS.gapBeats.max, p.gapBeats + 1)))
-  );
 
   // Session 進行中保持螢幕喚醒(SPEC 3.4.3);暫停 / 結束 / 停止則釋放
   function syncWakeLock(): void {
@@ -324,8 +310,9 @@ export function mountApp(root: HTMLElement, storage: Storage): void {
           nowRoot.textContent = `${midiToName(r)} 開始`;
           nowProgress.textContent = `第 ${i + 1} / ${count} 組`;
         },
-        onNote: (midi, idx) => {
-          pulseNote(midi);
+        onNote: (_midi, idx) => {
+          const note = currentPatternNotes()[idx];
+          if (note) pulseNote(note.degree);
           highlightContour(idx);
         },
       });

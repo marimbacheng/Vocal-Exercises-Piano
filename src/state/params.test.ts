@@ -19,9 +19,19 @@ describe('sanitizeParams — 外部輸入必經驗證', () => {
     expect(p.patternId).toBe('p5-x1');
   });
 
-  it('bpm 超界 → clamp 到二分音符 80–200', () => {
-    expect(sanitizeParams({ ...DEFAULT_PARAMS, bpm: 999 }).bpm).toBe(200);
+  it('bpm 超界 → clamp 到二分音符 80–130', () => {
+    expect(sanitizeParams({ ...DEFAULT_PARAMS, bpm: 999 }).bpm).toBe(130);
     expect(sanitizeParams({ ...DEFAULT_PARAMS, bpm: 1 }).bpm).toBe(80);
+  });
+
+  it('gapBeats 固定 2 拍(UI 已移除間隔調整)', () => {
+    expect(sanitizeParams({ ...DEFAULT_PARAMS, gapBeats: 4 }).gapBeats).toBe(2);
+    expect(sanitizeParams({ ...DEFAULT_PARAMS, gapBeats: 1 }).gapBeats).toBe(2);
+  });
+
+  it('舊存的小調 scaleId → 一律強制大調', () => {
+    expect(sanitizeParams({ ...DEFAULT_PARAMS, scaleId: 'natural-minor' }).scaleId).toBe('major');
+    expect(sanitizeParams({ ...DEFAULT_PARAMS, scaleId: 'harmonic-minor' }).scaleId).toBe('major');
   });
 
   it('root 超界 → clamp 到 36–84;非數值 → 預設', () => {
@@ -63,7 +73,7 @@ describe('loadParams / saveParams — storage 故障不 crash', () => {
 
   it('save → load round-trip', () => {
     const s = memStorage();
-    const p = { ...DEFAULT_PARAMS, bpm: 120, gapBeats: 3 };
+    const p = { ...DEFAULT_PARAMS, bpm: 120, startRoot: 55, topRoot: 67 };
     saveParams(s, p);
     expect(loadParams(s)).toEqual(p);
   });

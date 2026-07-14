@@ -198,7 +198,7 @@ button {
 button:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .stepper { display: flex; align-items: center; gap: 0.6rem; }
-.stepper .value { min-width: 3rem; font-family: var(--mono); }
+.stepper .value { min-width: 3rem; font-family: var(--mono); text-align: center; }
 .step-btn {
   width: 46px;
   height: 46px;

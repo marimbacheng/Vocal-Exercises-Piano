@@ -1,4 +1,3 @@
-import { SCALES } from '../theory/scale.ts';
 import { PATTERNS } from '../theory/pattern.ts';
 
 /** 使用者參數(SPEC 2.1) */
@@ -13,9 +12,12 @@ export type AppParams = {
 
 export const PARAM_LIMITS = {
   root: { min: 36, max: 84 },
-  bpm: { min: 80, max: 200 }, // 二分音符 BPM;實際四分音符 = 兩倍(160–400)
+  bpm: { min: 80, max: 130 }, // 二分音符 BPM;實際四分音符 = 兩倍(160–260)
   gapBeats: { min: 1, max: 4 },
 } as const;
+
+/** 間隔固定為 2 拍(UI 已移除調整選項) */
+export const FIXED_GAP_BEATS = 2;
 
 export const DEFAULT_PARAMS: AppParams = {
   scaleId: 'major',
@@ -23,7 +25,7 @@ export const DEFAULT_PARAMS: AppParams = {
   startRoot: 60, // C4
   topRoot: 72, // C5
   bpm: 80, // 二分音符 80 = 四分音符 160
-  gapBeats: 2,
+  gapBeats: FIXED_GAP_BEATS,
 };
 
 // v2:速度單位由四分音符改為二分音符,舊值語意不同,換 key 讓舊設定重置
@@ -40,9 +42,8 @@ function clampInt(v: unknown, min: number, max: number, fallback: number): numbe
  */
 export function sanitizeParams(raw: unknown): AppParams {
   const r = (typeof raw === 'object' && raw !== null ? raw : {}) as Record<string, unknown>;
-  const scaleId = SCALES.some((s) => s.id === r.scaleId)
-    ? (r.scaleId as string)
-    : DEFAULT_PARAMS.scaleId;
+  // UI 只提供大調(音階選擇器已移除);強制忽略任何舊存的小調值,否則舊 localStorage 會續播小調
+  const scaleId = DEFAULT_PARAMS.scaleId;
   const patternId = PATTERNS.some((p) => p.id === r.patternId)
     ? (r.patternId as string)
     : DEFAULT_PARAMS.patternId;
@@ -55,7 +56,7 @@ export function sanitizeParams(raw: unknown): AppParams {
     startRoot,
     topRoot,
     bpm: clampInt(r.bpm, PARAM_LIMITS.bpm.min, PARAM_LIMITS.bpm.max, DEFAULT_PARAMS.bpm),
-    gapBeats: clampInt(r.gapBeats, PARAM_LIMITS.gapBeats.min, PARAM_LIMITS.gapBeats.max, DEFAULT_PARAMS.gapBeats),
+    gapBeats: FIXED_GAP_BEATS, // 間隔固定 2 拍,UI 無調整選項
   };
 }
 
