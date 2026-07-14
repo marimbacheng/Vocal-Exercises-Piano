@@ -45,62 +45,75 @@ export function mountApp(root: HTMLElement, storage: Storage): void {
   let player: SessionPlayer | null = null;
 
   root.innerHTML = `
-    <h1>Vocal Exercises Piano</h1>
+    <header class="app-header">
+      <div class="app-title">Vocal Exercises Piano</div>
+      <div class="app-sub">聲樂音階練習 · WARM-UP</div>
+    </header>
 
-    <div class="panel">
-      <div class="row">
-        <label for="scale">音階</label>
-        <select id="scale"></select>
+    <div class="display">
+      <div class="display-grid" aria-hidden="true"></div>
+      <div class="display-head">
+        <span class="display-root" id="now-root">起音 —</span>
+        <span class="display-progress" id="now-progress"></span>
       </div>
-      <div class="row">
-        <label for="pattern">音型</label>
-        <select id="pattern"></select>
+      <div class="display-note" id="now-note">—</div>
+      <div class="display-status" id="now-state"></div>
+    </div>
+
+    <div class="section">
+      <div class="section-label">音階 <span>· SCALE</span></div>
+      <select id="scale" class="soft-select"></select>
+    </div>
+
+    <div class="section">
+      <div class="section-label">音型 <span>· PATTERN</span></div>
+      <select id="pattern" class="soft-select"></select>
+    </div>
+
+    <div class="section">
+      <div class="section-label">音域 <span>· RANGE</span></div>
+      <div class="panel">
+        <div class="row">
+          <label>起始音</label>
+          <div class="stepper">
+            <button class="step-btn" id="start-dn" aria-label="起始音降低">−</button>
+            <span class="value" id="start-val"></span>
+            <button class="step-btn" id="start-up" aria-label="起始音升高">+</button>
+          </div>
+        </div>
+        <div class="row">
+          <label>最高根音</label>
+          <div class="stepper">
+            <button class="step-btn" id="top-dn" aria-label="最高根音降低">−</button>
+            <span class="value" id="top-val"></span>
+            <button class="step-btn" id="top-up" aria-label="最高根音升高">+</button>
+          </div>
+        </div>
+        <div class="feedback" id="range">
+          <div>本次最高演唱音 <span class="hi" id="range-hi"></span></div>
+          <div>本次最低演唱音 <span class="lo" id="range-lo"></span></div>
+          <div class="problem" id="range-problem"></div>
+        </div>
       </div>
     </div>
 
-    <div class="panel">
-      <div class="row">
-        <label>起始音</label>
-        <div class="stepper">
-          <button class="step-btn" id="start-dn" aria-label="起始音降低">−</button>
-          <span class="value" id="start-val"></span>
-          <button class="step-btn" id="start-up" aria-label="起始音升高">+</button>
+    <div class="section">
+      <div class="section-label">速度 <span>· TEMPO</span></div>
+      <div class="panel">
+        <div class="row">
+          <label for="bpm">速度</label>
+          <input type="range" id="bpm" min="${PARAM_LIMITS.bpm.min}" max="${PARAM_LIMITS.bpm.max}" step="1" />
+          <span class="value mono" id="bpm-val"></span>
+        </div>
+        <div class="row">
+          <label>間隔</label>
+          <div class="stepper">
+            <button class="step-btn" id="gap-dn" aria-label="間隔減少">−</button>
+            <span class="value" id="gap-val"></span>
+            <button class="step-btn" id="gap-up" aria-label="間隔增加">+</button>
+          </div>
         </div>
       </div>
-      <div class="row">
-        <label>最高根音</label>
-        <div class="stepper">
-          <button class="step-btn" id="top-dn" aria-label="最高根音降低">−</button>
-          <span class="value" id="top-val"></span>
-          <button class="step-btn" id="top-up" aria-label="最高根音升高">+</button>
-        </div>
-      </div>
-      <div class="row">
-        <label for="bpm">速度</label>
-        <input type="range" id="bpm" min="${PARAM_LIMITS.bpm.min}" max="${PARAM_LIMITS.bpm.max}" step="1" />
-        <span class="value" id="bpm-val"></span>
-      </div>
-      <div class="row">
-        <label>間隔</label>
-        <div class="stepper">
-          <button class="step-btn" id="gap-dn" aria-label="間隔減少">−</button>
-          <span class="value" id="gap-val"></span>
-          <button class="step-btn" id="gap-up" aria-label="間隔增加">+</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="panel range-feedback" id="range">
-      <div>本次最高演唱音:<span class="hi" id="range-hi"></span></div>
-      <div>本次最低演唱音:<span class="lo" id="range-lo"></span></div>
-      <div class="problem" id="range-problem"></div>
-    </div>
-
-    <div class="panel now-playing">
-      <div class="now-root" id="now-root">起音 —</div>
-      <div class="now-note" id="now-note">—</div>
-      <div class="now-progress" id="now-progress"></div>
-      <div class="now-state" id="now-state"></div>
     </div>
 
     <details>
