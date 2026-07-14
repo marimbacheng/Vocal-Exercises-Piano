@@ -7,14 +7,13 @@ export type AppParams = {
   patternId: string;
   startRoot: number; // MIDI 36–84
   topRoot: number; // MIDI 36–84,>= startRoot
-  bpm: number; // 40–180
+  bpm: number; // 二分音符 BPM 20–90(四分音符為其兩倍)
   gapBeats: number; // 1–4
-  forceMajorCue: boolean;
 };
 
 export const PARAM_LIMITS = {
   root: { min: 36, max: 84 },
-  bpm: { min: 40, max: 180 },
+  bpm: { min: 20, max: 90 }, // 二分音符 BPM;實際四分音符 = 兩倍(40–180)
   gapBeats: { min: 1, max: 4 },
 } as const;
 
@@ -23,12 +22,12 @@ export const DEFAULT_PARAMS: AppParams = {
   patternId: 'p5-x1',
   startRoot: 60, // C4
   topRoot: 72, // C5
-  bpm: 80,
+  bpm: 40, // 二分音符 40 = 四分音符 80
   gapBeats: 2,
-  forceMajorCue: false,
 };
 
-const STORAGE_KEY = 'vocal-warmup-params-v1';
+// v2:速度單位由四分音符改為二分音符,舊值語意不同,換 key 讓舊設定重置
+const STORAGE_KEY = 'vocal-warmup-params-v2';
 
 function clampInt(v: unknown, min: number, max: number, fallback: number): number {
   if (typeof v !== 'number' || !Number.isFinite(v)) return fallback;
@@ -57,7 +56,6 @@ export function sanitizeParams(raw: unknown): AppParams {
     topRoot,
     bpm: clampInt(r.bpm, PARAM_LIMITS.bpm.min, PARAM_LIMITS.bpm.max, DEFAULT_PARAMS.bpm),
     gapBeats: clampInt(r.gapBeats, PARAM_LIMITS.gapBeats.min, PARAM_LIMITS.gapBeats.max, DEFAULT_PARAMS.gapBeats),
-    forceMajorCue: typeof r.forceMajorCue === 'boolean' ? r.forceMajorCue : DEFAULT_PARAMS.forceMajorCue,
   };
 }
 

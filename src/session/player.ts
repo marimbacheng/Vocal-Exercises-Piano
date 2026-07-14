@@ -86,9 +86,11 @@ export class SessionPlayer {
     transport.stop();
     transport.cancel(0);
     transport.position = 0;
-    transport.bpm.value = this.bpm;
+    // UI 的速度為二分音符 BPM;pattern 的 beats 以四分音符計,故四分音符速度為其兩倍
+    const quarterBpm = this.bpm * 2;
+    transport.bpm.value = quarterBpm;
 
-    const secondsPerBeat = 60 / this.bpm;
+    const secondsPerBeat = 60 / quarterBpm;
     const ppq = transport.PPQ;
     const peakIndex = params.topRoot - params.startRoot;
 

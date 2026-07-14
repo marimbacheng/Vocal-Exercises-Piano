@@ -54,3 +54,13 @@
 - 2026-07-14 Pages 以 GitHub Actions 部署(gh api build_type=workflow);deploy.yml build 18s + deploy 10s 成功。線上驗證:資產全 200、無 404、頁面完整渲染、G5/C4 音域回饋正確。
 - 2026-07-14 .claude/settings.local.json 加入 .gitignore(本機權限設定,不進 public repo)。
 - 2026-07-14 M4 gate「部署 GitHub Pages 無 404」已達成(線上實測)。剩 M5 實機(iPhone 加入主畫面 + 撥電話驗靜音/Wake Lock/來電 paused)為使用者動作。
+
+## 使用者調整批次(2026-07-14)
+- 換 key 的和弦(gapNext,下一個 key 的 triad)多拉長一拍:beats = gapBeats/2 + 1,gap 總長 gapBeats+1。計時實測 gap 跨度 3.0s(2+1 拍 @ 四分80)。
+- 速度改為二分音符 BPM:UI 值 × 2 = 四分音符 BPM(player quarterBpm)。range 20–90、default 40(=四分80)。storage key 升 v2 避免舊四分值被誤讀。計時實測 run 內間隔 ~0.75s。
+- iOS 靜音模式發聲:ios-audio.ts 無聲 WAV 加長至 ~0.5s 並 loop=true,持續維持 playback session(桌機無法驗實體靜音,需實機)。
+- 移除 UI 狀態字(idle/playing/countIn/paused):now-state 只顯示 載入中/中斷/錯誤,平時空白。errorMsg 改用獨立變數,不再被 refreshPlaybackDisplay 覆蓋。
+- 移除頁尾鋼琴音源列:CC BY 3.0 為法律要求(SPEC 3.2),不可完全刪,改移入預設收合的「音源授權」<details>(README 也有標註),兼顧清爽與合規。
+- 暫停中可改參數(scale/pattern/start/top/bpm/gap):disable 條件由 isActive() 改 isPlaying()(不含 paused)。暫停期間改任一參數 → dirtyWhilePaused,繼續時 stop+start 從第一組帶新參數重跑;未改則維持 resume 從當前 run(SPEC 2.4)。兩向皆實測。
+- 移除 forceMajorCue(顯示與功能):AppParams / SessionParams / buildTriad / UI checkbox 全數移除;triad 一律跟隨所選音階。
+- 測試同步更新:102 passed(原 103,移除 forceMajorCue 一項)。

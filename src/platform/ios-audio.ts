@@ -5,10 +5,10 @@
 let unlocked = false;
 let silentEl: HTMLAudioElement | null = null;
 
-/** 程式建構一段極短(~0.02s)的無聲 16-bit WAV,回傳 blob URL */
+/** 程式建構一段短(~0.5s)的無聲 16-bit WAV,回傳 blob URL */
 function makeSilentWavUrl(): string {
   const sampleRate = 8000;
-  const samples = 160;
+  const samples = 4000;
   const dataLen = samples * 2;
   const buf = new ArrayBuffer(44 + dataLen);
   const dv = new DataView(buf);
@@ -45,6 +45,9 @@ export function unlockAudioSession(): boolean {
   el.preload = 'auto';
   el.src = makeSilentWavUrl();
   el.volume = 0;
+  // 持續循環播放無聲音軌,讓 iOS audio session 維持 playback category,
+  // 使實體靜音開關開啟時 Web Audio 仍能發聲(SPEC 3.4.2,陷阱 #3)
+  el.loop = true;
   el.style.display = 'none';
   // 附到 DOM:部分 iOS 版本對 detached 媒體元素的 audio session 設定不可靠
   document.body.appendChild(el);

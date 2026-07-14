@@ -60,9 +60,6 @@ describe('buildTriad', () => {
     expect(buildTriad(60, naturalMinor)).toEqual([60, 63, 67]);
   });
 
-  it('forceMajorCue:小調下仍為大三和弦', () => {
-    expect(buildTriad(60, naturalMinor, true)).toEqual([60, 64, 67]);
-  });
 });
 
 describe('buildSessionTimeline — 結構', () => {
@@ -105,8 +102,9 @@ describe('buildSessionTimeline — 結構', () => {
     expect(last.atBeat + last.beats).toBe(tl.totalBeats);
   });
 
-  it('totalBeats = count-in + 25 run × 9 拍 + 24 gap × 2 拍', () => {
-    expect(tl.totalBeats).toBe(2 + 25 * 9 + 24 * 2);
+  it('totalBeats = count-in 2 + 25 run × 9 拍 + 24 gap ×(2+1)拍', () => {
+    // 每個 gap 因換 key 和弦多拉長一拍,總長 gapBeats + 1 = 3
+    expect(tl.totalBeats).toBe(2 + 25 * 9 + 24 * 3);
   });
 
   it('run 的音高正確:第 0 run 是 C4 大調 1..5..1', () => {
@@ -148,28 +146,29 @@ describe('buildSessionTimeline — gapBeats 佈局(SPEC 2.3)', () => {
     ];
   }
 
-  it('gapBeats=2:兩 triad 各 1 拍', () => {
+  // current triad = gapBeats/2;next-key triad = gapBeats/2 + 1(換 key 和弦多一拍)
+  it('gapBeats=2:current 1 拍、next 2 拍', () => {
     const [cur, next] = firstGap(2);
     expect(cur.beats).toBe(1);
-    expect(next.beats).toBe(1);
-    expect(next.atBeat - cur.atBeat).toBe(1);
+    expect(next.beats).toBe(2);
+    expect(next.atBeat - cur.atBeat).toBe(1); // next 緊接 current 之後(current 長 1 拍)
   });
 
-  it('gapBeats=1:各半拍', () => {
+  it('gapBeats=1:current 0.5、next 1.5', () => {
     const [cur, next] = firstGap(1);
     expect(cur.beats).toBe(0.5);
-    expect(next.beats).toBe(0.5);
-  });
-
-  it('gapBeats=3:前半 / 後半各 1.5 拍', () => {
-    const [cur, next] = firstGap(3);
-    expect(cur.beats).toBe(1.5);
     expect(next.beats).toBe(1.5);
   });
 
-  it('gapBeats=4:各 2 拍', () => {
+  it('gapBeats=3:current 1.5、next 2.5', () => {
+    const [cur, next] = firstGap(3);
+    expect(cur.beats).toBe(1.5);
+    expect(next.beats).toBe(2.5);
+  });
+
+  it('gapBeats=4:current 2、next 3', () => {
     const [cur, next] = firstGap(4);
     expect(cur.beats).toBe(2);
-    expect(next.beats).toBe(2);
+    expect(next.beats).toBe(3);
   });
 });

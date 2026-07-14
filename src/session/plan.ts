@@ -8,7 +8,6 @@ export type SessionParams = {
   startRoot: number;
   topRoot: number;
   gapBeats: number;
-  forceMajorCue?: boolean;
 };
 
 export type NoteEvent = {
@@ -54,22 +53,18 @@ export function buildRootSequence(startRoot: number, topRoot: number): number[] 
   return roots;
 }
 
-/**
- * 提示和弦音高(SPEC 2.3):取 scale 的 degree 1/3/5;
- * forceMajorCue 時一律大三和弦(root, +4, +7)。
- */
-export function buildTriad(root: number, scale: Scale, forceMajorCue = false): number[] {
-  if (forceMajorCue) return [root, root + 4, root + 7];
+/** 提示和弦音高(SPEC 2.3):取 scale 的 degree 1/3/5,跟隨所選音階 */
+export function buildTriad(root: number, scale: Scale): number[] {
   return [1, 3, 5].map((d) => degreeToMidi(d, root, scale));
 }
 
 /**
  * 展開整個 session 為以「拍」為時間軸的事件列表(純資料,不碰音訊):
  * count-in(startRoot triad,gapBeats 拍)→ run → gap(前半 current triad、
- * 後半 next triad)→ … → 最後一個 run 之後無 gap(SPEC 2.3)。
+ * 後半 next-key triad,新 key 和弦多拉長一拍)→ … → 最後一個 run 之後無 gap(SPEC 2.3)。
  */
 export function buildSessionTimeline(params: SessionParams): SessionTimeline {
-  const { scale, pattern, startRoot, topRoot, gapBeats, forceMajorCue = false } = params;
+  const { scale, pattern, startRoot, topRoot, gapBeats } = params;
   if (pattern.length === 0) throw new Error('pattern 不可為空');
   const roots = buildRootSequence(startRoot, topRoot);
   const events: TimelineEvent[] = [];
@@ -79,7 +74,7 @@ export function buildSessionTimeline(params: SessionParams): SessionTimeline {
     kind: 'triad',
     atBeat: 0,
     beats: gapBeats,
-    midis: buildTriad(startRoot, scale, forceMajorCue),
+    midis: buildTriad(startRoot, scale),
     role: 'countIn',
     runIndex: 0,
     root: startRoot,
@@ -105,21 +100,22 @@ export function buildSessionTimeline(params: SessionParams): SessionTimeline {
         kind: 'triad',
         atBeat: beat,
         beats: half,
-        midis: buildTriad(root, scale, forceMajorCue),
+        midis: buildTriad(root, scale),
         role: 'gapCurrent',
         runIndex: i + 1,
         root,
       });
+      // 換 key 的和弦(下一個 key 的 triad)多拉長一拍,給演唱者更多換氣/定調時間
       events.push({
         kind: 'triad',
         atBeat: beat + half,
-        beats: half,
-        midis: buildTriad(roots[i + 1], scale, forceMajorCue),
+        beats: half + 1,
+        midis: buildTriad(roots[i + 1], scale),
         role: 'gapNext',
         runIndex: i + 1,
         root: roots[i + 1],
       });
-      beat += gapBeats;
+      beat += gapBeats + 1;
     }
   }
 

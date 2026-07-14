@@ -40,6 +40,8 @@ export function mountApp(root: HTMLElement, storage: Storage): void {
   let playback: SessionState = 'idle';
   let loading = false;
   let interrupted = false; // 被來電 / 切 app 中斷而暫停(SPEC 3.5)
+  let errorMsg = '';
+  let dirtyWhilePaused = false; // 暫停期間改過參數 → 繼續時從第一組重跑
   let player: SessionPlayer | null = null;
 
   root.innerHTML = `
@@ -86,10 +88,6 @@ export function mountApp(root: HTMLElement, storage: Storage): void {
           <button class="step-btn" id="gap-up" aria-label="間隔增加">+</button>
         </div>
       </div>
-      <div class="row">
-        <label for="cue">提示和弦強制大三和弦</label>
-        <input type="checkbox" id="cue" style="width:24px;height:24px;" />
-      </div>
     </div>
 
     <div class="panel range-feedback" id="range">
@@ -102,7 +100,7 @@ export function mountApp(root: HTMLElement, storage: Storage): void {
       <div class="now-root" id="now-root">起音 —</div>
       <div class="now-note" id="now-note">—</div>
       <div class="now-progress" id="now-progress"></div>
-      <div class="now-state" id="now-state">idle</div>
+      <div class="now-state" id="now-state"></div>
     </div>
 
     <details>
@@ -110,10 +108,11 @@ export function mountApp(root: HTMLElement, storage: Storage): void {
       <p>iOS Safari 沒有安裝提示。請點底部工具列的「分享」→「加入主畫面」,即可像 App 一樣全螢幕、離線使用。</p>
     </details>
 
-    <footer>
-      鋼琴音源:Salamander Grand Piano，作者 Alexander Holm，授權
-      <a href="https://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noopener">CC BY 3.0</a>。
-    </footer>
+    <details>
+      <summary>音源授權</summary>
+      <p>鋼琴音源:Salamander Grand Piano，作者 Alexander Holm，授權
+        <a href="https://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noopener">CC BY 3.0</a>。</p>
+    </details>
 
     <div class="controls">
       <button class="primary" id="play">▶ 開始</button>
@@ -125,7 +124,6 @@ export function mountApp(root: HTMLElement, storage: Storage): void {
   const scaleSel = $<HTMLSelectElement>('scale');
   const patternSel = $<HTMLSelectElement>('pattern');
   const bpmSlider = $<HTMLInputElement>('bpm');
-  const cueChk = $<HTMLInputElement>('cue');
   const rangePanel = $('range');
   const rangeHi = $('range-hi');
   const rangeLo = $('range-lo');
@@ -146,6 +144,9 @@ export function mountApp(root: HTMLElement, storage: Storage): void {
 
   const isActive = () =>
     playback === 'countIn' || playback === 'playing' || playback === 'gap' || playback === 'paused';
+  // 實際發聲中(不含 paused):參數在此期間鎖定;paused 時可改
+  const isPlaying = () =>
+    playback === 'countIn' || playback === 'playing' || playback === 'gap';
 
   function currentScale() {
     return SCALES.find((s) => s.id === params.scaleId)!;
@@ -158,7 +159,6 @@ export function mountApp(root: HTMLElement, storage: Storage): void {
     scaleSel.value = params.scaleId;
     patternSel.value = params.patternId;
     bpmSlider.value = String(params.bpm);
-    cueChk.checked = params.forceMajorCue;
     $('start-val').textContent = midiToName(params.startRoot);
     $('top-val').textContent = midiToName(params.topRoot);
     $('bpm-val').textContent = String(params.bpm);
@@ -171,9 +171,9 @@ export function mountApp(root: HTMLElement, storage: Storage): void {
     rangePanel.classList.toggle('warn', !check.ok);
     rangeProblem.textContent = check.problems.join('；');
 
-    // 播放中禁用參數(SPEC 2.4);音域超標則 disable 開始
-    const disableParams = isActive();
-    for (const el of [scaleSel, patternSel, bpmSlider, cueChk]) el.disabled = disableParams;
+    // 實際發聲中禁用參數;paused 時開放編輯(改了會從第一組重跑)
+    const disableParams = isPlaying();
+    for (const el of [scaleSel, patternSel, bpmSlider]) el.disabled = disableParams;
     for (const id of ['start-dn', 'start-up', 'top-dn', 'top-up', 'gap-dn', 'gap-up']) {
       $<HTMLButtonElement>(id).disabled = disableParams;
     }
@@ -185,9 +185,11 @@ export function mountApp(root: HTMLElement, storage: Storage): void {
   }
 
   function refreshPlaybackDisplay(): void {
-    if (loading) nowState.textContent = '載入中…';
+    // 只顯示對使用者有意義的訊息,不顯示 idle/playing 等內部狀態字
+    if (errorMsg) nowState.textContent = errorMsg;
+    else if (loading) nowState.textContent = '載入中…';
     else if (interrupted && playback === 'paused') nowState.textContent = '已中斷(來電/切換 app),點「繼續」接續';
-    else nowState.textContent = playback;
+    else nowState.textContent = '';
     if (playback === 'paused') {
       playBtn.textContent = '▶ 繼續';
     } else if (isActive()) {
@@ -217,14 +219,14 @@ export function mountApp(root: HTMLElement, storage: Storage): void {
       startRoot: params.startRoot,
       topRoot: params.topRoot,
       gapBeats: params.gapBeats,
-      forceMajorCue: params.forceMajorCue,
     };
   }
 
   function update(mutate: (p: AppParams) => void): void {
-    if (isActive()) return; // 播放中不接受參數變更
+    if (isPlaying()) return; // 實際發聲中不接受參數變更;paused 時允許
     mutate(params);
     saveParams(storage, params);
+    if (playback === 'paused') dirtyWhilePaused = true; // 繼續時將從第一組重跑
     refreshParamDisplay();
   }
 
@@ -232,7 +234,6 @@ export function mountApp(root: HTMLElement, storage: Storage): void {
   scaleSel.addEventListener('change', () => update((p) => (p.scaleId = scaleSel.value)));
   patternSel.addEventListener('change', () => update((p) => (p.patternId = patternSel.value)));
   bpmSlider.addEventListener('input', () => update((p) => (p.bpm = Number(bpmSlider.value))));
-  cueChk.addEventListener('change', () => update((p) => (p.forceMajorCue = cueChk.checked)));
 
   bindStepper($('start-dn'), () =>
     update((p) => (p.startRoot = Math.max(PARAM_LIMITS.root.min, p.startRoot - 1)))
@@ -301,11 +302,20 @@ export function mountApp(root: HTMLElement, storage: Storage): void {
     if (playback === 'paused') {
       // resume 前先確保 context 已從 suspended 恢復(來電中斷後尤其必要,SPEC 3.5)
       try {
+        errorMsg = '';
         await ensureAudioRunning();
         interrupted = false;
-        player?.resume();
+        if (dirtyWhilePaused) {
+          // 暫停期間改過參數 → 從第一組重新開始(帶新參數)
+          dirtyWhilePaused = false;
+          player?.stop();
+          player?.start(makeSessionParams(), params.bpm);
+        } else {
+          player?.resume();
+        }
       } catch (err) {
-        nowState.textContent = `錯誤:${err instanceof Error ? err.message : String(err)}`;
+        errorMsg = `錯誤:${err instanceof Error ? err.message : String(err)}`;
+        refreshPlaybackDisplay();
       }
       return;
     }
@@ -316,6 +326,8 @@ export function mountApp(root: HTMLElement, storage: Storage): void {
     // idle / finished → 開始。unlock 必須在手勢同步鏈內、任何 await 之前(SPEC 3.4.2)
     unlockAudioSession();
     interrupted = false;
+    errorMsg = '';
+    dirtyWhilePaused = false;
     loading = true;
     refreshPlaybackDisplay();
     try {
@@ -326,7 +338,7 @@ export function mountApp(root: HTMLElement, storage: Storage): void {
     } catch (err) {
       loading = false;
       playback = 'idle';
-      nowState.textContent = `錯誤:${err instanceof Error ? err.message : String(err)}`;
+      errorMsg = `錯誤:${err instanceof Error ? err.message : String(err)}`;
       refreshPlaybackDisplay();
     }
   });
@@ -335,6 +347,8 @@ export function mountApp(root: HTMLElement, storage: Storage): void {
     player?.stop();
     playback = 'idle';
     interrupted = false;
+    errorMsg = '';
+    dirtyWhilePaused = false;
     refreshPlaybackDisplay();
   });
 

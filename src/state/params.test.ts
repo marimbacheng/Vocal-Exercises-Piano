@@ -9,7 +9,7 @@ describe('sanitizeParams — 外部輸入必經驗證', () => {
   });
 
   it('合法參數原樣通過', () => {
-    const p = { ...DEFAULT_PARAMS, bpm: 100, startRoot: 55, topRoot: 67 };
+    const p = { ...DEFAULT_PARAMS, bpm: 60, startRoot: 55, topRoot: 67 };
     expect(sanitizeParams(p)).toEqual(p);
   });
 
@@ -19,9 +19,9 @@ describe('sanitizeParams — 外部輸入必經驗證', () => {
     expect(p.patternId).toBe('p5-x1');
   });
 
-  it('bpm 超界 → clamp 到 40–180', () => {
-    expect(sanitizeParams({ ...DEFAULT_PARAMS, bpm: 999 }).bpm).toBe(180);
-    expect(sanitizeParams({ ...DEFAULT_PARAMS, bpm: 1 }).bpm).toBe(40);
+  it('bpm 超界 → clamp 到二分音符 20–90', () => {
+    expect(sanitizeParams({ ...DEFAULT_PARAMS, bpm: 999 }).bpm).toBe(90);
+    expect(sanitizeParams({ ...DEFAULT_PARAMS, bpm: 1 }).bpm).toBe(20);
   });
 
   it('root 超界 → clamp 到 36–84;非數值 → 預設', () => {
@@ -57,13 +57,13 @@ describe('loadParams / saveParams — storage 故障不 crash', () => {
   });
 
   it('壞 JSON → 預設,不 throw', () => {
-    const s = memStorage({ 'vocal-warmup-params-v1': '{oops' });
+    const s = memStorage({ 'vocal-warmup-params-v2': '{oops' });
     expect(loadParams(s)).toEqual(DEFAULT_PARAMS);
   });
 
   it('save → load round-trip', () => {
     const s = memStorage();
-    const p = { ...DEFAULT_PARAMS, bpm: 120, gapBeats: 3 };
+    const p = { ...DEFAULT_PARAMS, bpm: 70, gapBeats: 3 };
     saveParams(s, p);
     expect(loadParams(s)).toEqual(p);
   });
