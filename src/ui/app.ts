@@ -106,8 +106,8 @@ export function mountApp(root: HTMLElement, storage: Storage): void {
     </div>
 
     <details>
-      <summary>加入主畫面(iOS)</summary>
-      <p>iOS Safari 沒有安裝提示。請點底部工具列的「分享」→「加入主畫面」,即可像 App 一樣全螢幕、離線使用。</p>
+      <summary>加入主畫面（iOS）</summary>
+      <p>請點底部工具列的「分享」→「加入主畫面」，即可像 App 一樣全螢幕、離線使用。</p>
     </details>
 
     <details>
@@ -115,6 +115,8 @@ export function mountApp(root: HTMLElement, storage: Storage): void {
       <p>鋼琴音源:Salamander Grand Piano，作者 Alexander Holm，授權
         <a href="https://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noopener">CC BY 3.0</a>。</p>
     </details>
+
+    <div class="app-credit">Made with 🫶🏻 by 仁聲歌唱音樂學苑鄭淩翔</div>
 
     <div class="controls">
       <button class="primary" id="play">▶ 開始</button>
