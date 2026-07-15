@@ -36,6 +36,7 @@ Repo: https://github.com/marimbacheng/Vocal-Exercises-Piano
 - **UI 改版:柔和淺藍終端風**(`6a1efc9`):深藍灰底 + 淡藍點綴取代深色綠,中英分區標題。後續(`e4aa6ae`)顯示面板去示波器格線、縮小,改**音高輪廓點陣**(NoteEvent 加 `indexInRun`,onNote 帶序號供高亮)。
 - **三連音音型**(`e4aa6ae`):ext-13 分組 `1-3-5 / 8-10-12 / 11-9-7 / 5-4-2 / 1`,每組一拍。用 `beats: 0.33333` 表示 1/3 拍(3×0.33333=0.99999,誤差約十萬分之一拍、聽感不可辨),沿用現有 DSL 不改 parser。落選:parser 加分數 `1/3`(需改 round-trip 測試,收益不成比例)。
 - **強制大調、修小調殘留**:UI 移除音階選擇器後(`e4aa6ae`),`sanitizeParams` 仍保留舊 `scaleId`,舊 localStorage 存的小調值會續播小調。改為 `sanitizeParams` 一律回傳 `'major'`,忽略任何存值。`SCALES` 三音階資料仍保留供理論測試。
+- **休止符 = DSL 的 `0`**:採簡譜慣例(`0` 即休止),`parsePatternDsl` 把 degree 0 解析為 `{degree:0, beats, rest:true}`。`buildSessionTimeline` 遇 rest 不排音符事件、只推進拍數(`indexInRun` 仍用 noteIdx 對齊輪廓);`computeSungRange` 濾掉 rest;`renderContour` 不畫 rest 的點(留空隙、data-i 保留供高亮對齊)。`degreeToSemitone(0)`(低 Ti,root−1)仍是有效數學,只是 DSL 層不再產出 degree-0 發聲音符。落選:另用 `r`/`_` 專屬 token——本 app 以簡譜為介面,`0` 最直覺,且低 Ti 無音型使用。
 - **顯示音名改首調唱名 / 簡譜**:`now-note` 由絕對音名(C4)改為當前音在音型中的級數 →「首調唱名 / 簡譜」(如 `Mi / 3`)。新增 `degreeToSolfege`/`degreeToJianpu`(note-name.ts,純函式);簡譜高/低八度用組合附加點 U+0307 / U+0323。`onNote` 由 midi 改查 `pattern[indexInRun].degree`。
 - **速度 80–130、間隔固定 2 拍**:`PARAM_LIMITS.bpm.max` 200→130;移除 TEMPO 的「間隔」stepper UI 與事件,`sanitizeParams` 強制 `gapBeats = FIXED_GAP_BEATS(2)`。`buildSessionTimeline` 仍接受任意 gapBeats(純邏輯測試不動)。
 - **ext-13 改 1/2 倍速**:每音 `beats` 由 0.33333→0.66666、末音 1→2,每組三連音由一拍變兩拍。整體放慢一半,degree 不變(range 測試不受影響)。

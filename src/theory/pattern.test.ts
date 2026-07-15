@@ -25,6 +25,15 @@ describe('parsePatternDsl — 基本解析', () => {
     ]);
   });
 
+  it('degree 0 = 休止符:「0」與「0:0.66666」', () => {
+    expect(parsePatternDsl('0')).toEqual([{ degree: 0, beats: 1, rest: true }]);
+    expect(parsePatternDsl('8:2 0:0.66666 5:0.66666')).toEqual([
+      { degree: 8, beats: 2 },
+      { degree: 0, beats: 0.66666, rest: true },
+      { degree: 5, beats: 0.66666 },
+    ]);
+  });
+
   it('多餘空白容忍(前後與中間)', () => {
     expect(parsePatternDsl('  1   5  1  ')).toEqual([
       { degree: 1, beats: 1 },
@@ -53,9 +62,9 @@ describe('parsePatternDsl — 拒絕非法輸入', () => {
   });
 });
 
-describe('round-trip — 12 個內建音型', () => {
-  it('內建音型共 12 個', () => {
-    expect(PATTERNS).toHaveLength(12);
+describe('round-trip — 內建音型', () => {
+  it('內建音型共 21 個', () => {
+    expect(PATTERNS).toHaveLength(21);
   });
 
   it.each(PATTERNS.map((p) => [p.id, p] as const))(

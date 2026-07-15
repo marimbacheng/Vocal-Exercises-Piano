@@ -217,17 +217,21 @@ export function mountApp(root: HTMLElement, storage: Storage): void {
     nowNote.classList.add('pulse');
   }
 
-  /** 依目前音型畫出音高輪廓:每個音一個點,x=序號、y=音高(高在上) */
+  /** 依目前音型畫出音高輪廓:每個音一個點,x=序號、y=音高(高在上)。休止符不畫點(留空隙) */
   function renderContour(): void {
+    const scale = currentScale();
     const notes = currentPatternNotes();
-    const semis = notes.map((n) => degreeToSemitone(n.degree, currentScale()));
+    const sung = notes
+      .map((note, i) => ({ note, i, semi: degreeToSemitone(note.degree, scale) }))
+      .filter((s) => !s.note.rest);
+    const semis = sung.map((s) => s.semi);
     const min = Math.min(...semis);
     const span = Math.max(...semis) - min || 1;
     const n = notes.length;
-    contour.innerHTML = notes
-      .map((_, i) => {
+    contour.innerHTML = sung
+      .map(({ i, semi }) => {
         const x = n === 1 ? 50 : 8 + (i / (n - 1)) * 84;
-        const y = 84 - ((semis[i] - min) / span) * 68; // 高音→小 y→靠上
+        const y = 84 - ((semi - min) / span) * 68; // 高音→小 y→靠上
         return `<span class="dot" data-i="${i}" style="left:${x}%;top:${y}%"></span>`;
       })
       .join('');

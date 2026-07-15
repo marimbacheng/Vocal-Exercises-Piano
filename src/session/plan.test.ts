@@ -121,18 +121,19 @@ describe('buildSessionTimeline — 結構', () => {
   });
 });
 
-describe('buildSessionTimeline — 全部 12 內建音型皆可建出 timeline(M3 gate)', () => {
+describe('buildSessionTimeline — 全部內建音型皆可建出 timeline(M3 gate)', () => {
   it.each(PATTERNS.map((p) => [p.id, p] as const))('%s 產生非空且拍數遞增的 timeline', (_id, pattern) => {
     const tl = buildSessionTimeline({ ...baseParams, pattern: pattern.notes });
     expect(tl.events.length).toBeGreaterThan(0);
-    // 事件 atBeat 單調不遞減、每個 run 音符數 = pattern 長度
+    // 事件 atBeat 單調不遞減、每個 run 音符數 = pattern 非休止音符數(休止不排事件)
     let prev = -1;
     for (const ev of tl.events) {
       expect(ev.atBeat).toBeGreaterThanOrEqual(prev);
       prev = ev.atBeat;
     }
+    const sungCount = pattern.notes.filter((n) => !n.rest).length;
     const notes = tl.events.filter((e) => e.kind === 'note');
-    expect(notes.length).toBe(pattern.notes.length * tl.runCount);
+    expect(notes.length).toBe(sungCount * tl.runCount);
   });
 });
 
@@ -170,6 +171,18 @@ describe('buildSessionTimeline — gapBeats 佈局(SPEC 2.3)', () => {
     const [cur, next] = firstGap(4);
     expect(cur.beats).toBe(2);
     expect(next.beats).toBe(3);
+  });
+});
+
+describe('buildSessionTimeline — 休止符(degree 0)', () => {
+  it('休止符佔時間但不排音符事件,後續音符拍位正確', () => {
+    const withRest = parsePatternDsl('1 0 5'); // 唱-休-唱,各 1 拍
+    const tl = buildSessionTimeline({ ...baseParams, pattern: withRest, topRoot: 60 });
+    const notes = tl.events.filter((e): e is NoteEvent => e.kind === 'note');
+    expect(notes).toHaveLength(2); // 休止符不產生音符事件
+    expect(notes.map((n) => n.atBeat)).toEqual([2, 4]); // count-in 2 拍後:1 在 beat 2、5 在 beat 4(跳過休止的 beat 3)
+    expect(notes.map((n) => n.midi)).toEqual([60, 67]); // C4、G4(休止不發聲)
+    expect(notes.map((n) => n.indexInRun)).toEqual([0, 2]); // indexInRun 保留原始序號
   });
 });
 

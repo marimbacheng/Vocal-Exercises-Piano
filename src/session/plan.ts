@@ -95,15 +95,18 @@ export function buildSessionTimeline(params: SessionParams): SessionTimeline {
     const root = roots[i];
     for (let noteIdx = 0; noteIdx < pattern.length; noteIdx++) {
       const note = pattern[noteIdx];
-      events.push({
-        kind: 'note',
-        atBeat: beat,
-        beats: note.beats,
-        midi: degreeToMidi(note.degree, root, scale),
-        runIndex: i,
-        indexInRun: noteIdx,
-        root,
-      });
+      // 休止符:佔時間但不排音符事件(不發聲);indexInRun 仍用 noteIdx 對齊輪廓
+      if (!note.rest) {
+        events.push({
+          kind: 'note',
+          atBeat: beat,
+          beats: note.beats,
+          midi: degreeToMidi(note.degree, root, scale),
+          runIndex: i,
+          indexInRun: noteIdx,
+          root,
+        });
+      }
       beat += note.beats;
     }
     if (i < roots.length - 1) {
