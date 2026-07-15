@@ -12,7 +12,7 @@ export default defineConfig({
       includeAssets: ['apple-touch-icon.png', 'icon-192.png', 'icon-512.png'],
       manifest: {
         name: 'Vocal Exercises Piano',
-        short_name: 'Vocal Piano',
+        short_name: 'Vocal Exercises Piano',
         description: '取樣鋼琴音色的聲樂音階練習,自動半音移調,可離線使用。',
         start_url: './',
         scope: './',
