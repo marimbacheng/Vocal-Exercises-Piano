@@ -201,27 +201,27 @@ describe('buildSessionTimeline — 三連音換 key 間隔(tripletGap 旗標)', 
     const tl = buildSessionTimeline({ ...baseParams, pattern: arp, topRoot: 62, tripletGap: 'both' });
     const triads = tl.events.filter((e): e is TriadEvent => e.kind === 'triad');
 
-    it('gapCurrent(當前調)、gapNext(新調)各 = run-1,皆 2 拍', () => {
+    it('gapCurrent(當前調)、gapNext(新調)各 = run-1;當前 2/3 拍、新調 2 拍', () => {
       const cur = triads.filter((t) => t.role === 'gapCurrent');
       const next = triads.filter((t) => t.role === 'gapNext');
       expect(cur).toHaveLength(tl.runCount - 1);
       expect(next).toHaveLength(tl.runCount - 1);
-      expect(cur[0].beats).toBe(2);
+      expect(cur[0].beats).toBeCloseTo(0.66666, 3);
       expect(next[0].beats).toBe(2);
     });
 
-    it('當前調和弦在前(root=當前)、新調和弦緊接其後 2 拍', () => {
+    it('當前調和弦在前(root=當前,補第三顆 2/3 拍)、新調和弦緊接其後', () => {
       const cur = triads.find((t) => t.role === 'gapCurrent')!;
       const next = triads.find((t) => t.role === 'gapNext')!;
       expect(cur.root).toBe(tl.roots[0]);
       expect(cur.midis).toEqual(buildTriad(tl.roots[0], major));
       expect(next.root).toBe(tl.roots[1]);
-      expect(next.atBeat - cur.atBeat).toBe(2);
+      expect(next.atBeat - cur.atBeat).toBeCloseTo(0.66666, 3);
     });
 
-    it('每個 gap 佔 4 拍(2 + 2)', () => {
+    it('每個 gap 佔 2⅔ 拍(2/3 + 2)', () => {
       const patternBeats = arp.reduce((s, n) => s + n.beats, 0);
-      expect(tl.totalBeats).toBeCloseTo(2 + tl.runCount * patternBeats + (tl.runCount - 1) * 4, 3);
+      expect(tl.totalBeats).toBeCloseTo(2 + tl.runCount * patternBeats + (tl.runCount - 1) * (0.66666 + 2), 3);
     });
   });
 });

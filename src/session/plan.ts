@@ -14,8 +14,9 @@ export type SessionParams = {
   tripletGap?: 'both' | 'nextOnly';
 };
 
-/** 三連音音型的一整拍 = 2 個四分拍(速度為二分音符 BPM) */
-const TRIPLET_CHORD_BEATS = 2;
+// 三連音音型換 key:當前調三和弦補最後一組三連音的第三顆(2/3 拍),新調三和弦一整拍(2 四分拍)
+const TRIPLET_GAP_CURRENT_BEATS = 0.66666;
+const TRIPLET_GAP_NEXT_BEATS = 2;
 
 export type NoteEvent = {
   kind: 'note';
@@ -107,30 +108,31 @@ export function buildSessionTimeline(params: SessionParams): SessionTimeline {
     }
     if (i < roots.length - 1) {
       if (tripletGap) {
-        // 半速三連音音型:結尾已在 pattern 內收束,換 key 的提示和弦各佔一整拍(2 四分拍)。
-        // 'both' 先放當前調和弦(接過去),再放新調和弦;'nextOnly' 只放新調和弦。
+        // 半速三連音音型:pattern 末音主音撐前兩顆三連音(1:1.33333)。
+        // 'both' 先放當前調三和弦補第三顆(2/3 拍、接過去),再放新調三和弦一整拍;
+        // 'nextOnly' 只放新調三和弦一整拍。
         if (tripletGap === 'both') {
           events.push({
             kind: 'triad',
             atBeat: beat,
-            beats: TRIPLET_CHORD_BEATS,
+            beats: TRIPLET_GAP_CURRENT_BEATS,
             midis: buildTriad(root, scale),
             role: 'gapCurrent',
             runIndex: i + 1,
             root,
           });
-          beat += TRIPLET_CHORD_BEATS;
+          beat += TRIPLET_GAP_CURRENT_BEATS;
         }
         events.push({
           kind: 'triad',
           atBeat: beat,
-          beats: TRIPLET_CHORD_BEATS,
+          beats: TRIPLET_GAP_NEXT_BEATS,
           midis: buildTriad(roots[i + 1], scale),
           role: 'gapNext',
           runIndex: i + 1,
           root: roots[i + 1],
         });
-        beat += TRIPLET_CHORD_BEATS;
+        beat += TRIPLET_GAP_NEXT_BEATS;
       } else {
         const half = gapBeats / 2;
         events.push({
