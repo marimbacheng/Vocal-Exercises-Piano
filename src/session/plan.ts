@@ -8,9 +8,14 @@ export type SessionParams = {
   startRoot: number;
   topRoot: number;
   gapBeats: number;
-  /** 換 key 間隔只放「一整拍的新調提示和弦」(無當前調和弦);結尾已收在 pattern 內 */
-  singleChordGap?: boolean;
+  /** 半速三連音音型的換 key 間隔樣式(結尾已收在 pattern 內):
+   *  'both' = 當前調 + 新調兩個和弦各一整拍(2 四分拍);'nextOnly' = 只放新調和弦一整拍。
+   *  未設 = 標準間隔(當前調 gapBeats/2 + 新調 gapBeats/2+1)。 */
+  tripletGap?: 'both' | 'nextOnly';
 };
+
+/** 三連音音型的一整拍 = 2 個四分拍(速度為二分音符 BPM) */
+const TRIPLET_CHORD_BEATS = 2;
 
 export type NoteEvent = {
   kind: 'note';
@@ -68,7 +73,7 @@ export function buildTriad(root: number, scale: Scale): number[] {
  * 後半 next-key triad,新 key 和弦多拉長一拍)→ … → 最後一個 run 之後無 gap(SPEC 2.3)。
  */
 export function buildSessionTimeline(params: SessionParams): SessionTimeline {
-  const { scale, pattern, startRoot, topRoot, gapBeats, singleChordGap } = params;
+  const { scale, pattern, startRoot, topRoot, gapBeats, tripletGap } = params;
   if (pattern.length === 0) throw new Error('pattern 不可為空');
   const roots = buildRootSequence(startRoot, topRoot);
   const events: TimelineEvent[] = [];
@@ -101,19 +106,31 @@ export function buildSessionTimeline(params: SessionParams): SessionTimeline {
       beat += note.beats;
     }
     if (i < roots.length - 1) {
-      if (singleChordGap) {
-        // 換 key 只放「一整拍的新調提示和弦」(結尾已在 pattern 內收束)。
-        // 速度是二分音符 BPM,一整拍 = 2 個四分拍,故 beats = 2(否則只佔半拍、聽感沒填滿)
+      if (tripletGap) {
+        // 半速三連音音型:結尾已在 pattern 內收束,換 key 的提示和弦各佔一整拍(2 四分拍)。
+        // 'both' 先放當前調和弦(接過去),再放新調和弦;'nextOnly' 只放新調和弦。
+        if (tripletGap === 'both') {
+          events.push({
+            kind: 'triad',
+            atBeat: beat,
+            beats: TRIPLET_CHORD_BEATS,
+            midis: buildTriad(root, scale),
+            role: 'gapCurrent',
+            runIndex: i + 1,
+            root,
+          });
+          beat += TRIPLET_CHORD_BEATS;
+        }
         events.push({
           kind: 'triad',
           atBeat: beat,
-          beats: 2,
+          beats: TRIPLET_CHORD_BEATS,
           midis: buildTriad(roots[i + 1], scale),
           role: 'gapNext',
           runIndex: i + 1,
           root: roots[i + 1],
         });
-        beat += 2;
+        beat += TRIPLET_CHORD_BEATS;
       } else {
         const half = gapBeats / 2;
         events.push({

@@ -247,7 +247,7 @@ export function mountApp(root: HTMLElement, storage: Storage): void {
       startRoot: params.startRoot,
       topRoot: params.topRoot,
       gapBeats: params.gapBeats,
-      singleChordGap: currentPattern().singleChordGap ?? false,
+      tripletGap: currentPattern().tripletGap,
     };
   }
 

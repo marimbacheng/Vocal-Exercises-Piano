@@ -7,9 +7,11 @@ export type Pattern = {
   id: string;
   name: string;
   notes: Note[];
-  /** 換 key 間隔只放「一整拍的新調提示和弦」(無當前調和弦);見 plan.ts。
-   *  ext-13 不設此旗標,沿用標準兩段和弦間隔以取得類似「琶音 ×1」的結尾和弦聽感。 */
-  singleChordGap?: boolean;
+  /** 半速三連音音型的換 key 間隔樣式(見 plan.ts):
+   *  'both' = 當前調 + 新調兩個提示和弦,各佔一整拍(2 四分拍);
+   *  'nextOnly' = 只放新調和弦一整拍。
+   *  未設 = 一般音型的標準間隔(當前調 gapBeats/2 拍 + 新調 gapBeats/2+1 拍)。 */
+  tripletGap?: 'both' | 'nextOnly';
 };
 
 /** 合法整數(允許負號,不允許小數/亂碼);"-1" 是合法 degree */
@@ -59,7 +61,7 @@ export function patternToDsl(notes: Note[]): string {
 }
 
 /** 內建音型庫(SPEC 1.6,DSL 以表列為準) */
-export const PATTERNS: Array<Pattern & { dsl: string }> = [
+const PATTERN_SOURCE: Array<Omit<Pattern, 'notes'> & { dsl: string }> = [
   { id: 'p5-x1',  name: '五度上下行 ×1', dsl: '1 2 3 4 5 4 3 2 1' },
   { id: 'p5-x2',  name: '五度上下行 ×2', dsl: '1 2 3 4 5 4 3 2 1 2 3 4 5 4 3 2 1' },
   { id: 'p5-x3',  name: '五度上下行 ×3', dsl: '1 2 3 4 5 4 3 2 1 2 3 4 5 4 3 2 1 2 3 4 5 4 3 2 1' },
@@ -69,35 +71,41 @@ export const PATTERNS: Array<Pattern & { dsl: string }> = [
   { id: 'arp-x3', name: '琶音 ×3', dsl: '1 3 5 3 1 3 5 3 1 3 5 3 1' },
 
   // 八度頂音重複系列:三連音 1/2 倍速(每音 2/3 拍,骨架 1-3-5 / 8-8-8 / 8-5-3),
-  // 結尾長短收束(1:4/3 拍 + 1:2/3 拍);升 key 由 triplet 旗標交給 plan.ts
+  // 結尾長短收束(1:4/3 拍 + 1:2/3 拍)。換 key 兩段和弦(當前調 + 新調 1-3-5)各佔一整拍
   {
     id: 'oct-rep4',
     name: '八度頂音重複 ×4',
-    singleChordGap: true,
+    tripletGap: 'both',
     dsl: '1:0.66666 3:0.66666 5:0.66666 8:0.66666 8:0.66666 8:0.66666 8:0.66666 5:0.66666 3:0.66666 1:1.33333 1:0.66666',
   },
   {
     id: 'oct-hold',
     name: '八度頂音長音',
-    singleChordGap: true,
+    tripletGap: 'both',
     dsl: '1:0.66666 3:0.66666 5:0.66666 8:2 8:2 8:0.66666 5:0.66666 3:0.66666 1:1.33333 1:0.66666',
   },
   {
     id: 'oct-rep7',
     name: '八度頂音重複 ×7',
-    singleChordGap: true,
+    tripletGap: 'both',
     dsl: '1:0.66666 3:0.66666 5:0.66666 8:0.66666 8:0.66666 8:0.66666 8:0.66666 8:0.66666 8:0.66666 8:0.66666 5:0.66666 3:0.66666 1:1.33333 1:0.66666',
   },
 
-  // 五度跳 / 八度大跳:三連音 1/2 倍速。概念 1-- 5-- 1-1(每音held 佔一個三連音組=2 拍,結尾長短)
-  { id: 'fifth-lhl', name: '五度跳',   singleChordGap: true, dsl: '1:2 5:2 1:1.33333 1:0.66666' },
-  { id: 'unison-x3', name: '八度大跳', singleChordGap: true, dsl: '1:2 8:2 1:1.33333 1:0.66666' },
+  // 五度跳 / 八度大跳:三連音 1/2 倍速。概念 1-- 5-- 1-1(每音held 佔一個三連音組=2 拍,結尾長短);
+  // 換 key 兩段和弦(當前調 + 新調 1-3-5)各佔一整拍,比照八度系列
+  { id: 'fifth-lhl', name: '五度跳',   tripletGap: 'both', dsl: '1:2 5:2 1:1.33333 1:0.66666' },
+  { id: 'unison-x3', name: '八度大跳', tripletGap: 'both', dsl: '1:2 8:2 1:1.33333 1:0.66666' },
 
-  // 延伸琶音音階,三連音 1/2 倍速(每音 2/3 拍)。第 4 拍三連音第 3 顆回到當前調主音(1)收束;
-  // 換 key 沿用標準兩段和弦間隔(當前調 1-3-5 + 新調 1-3-5),結尾和弦聽感類似「琶音 ×1」
+  // 延伸琶音音階,三連音 1/2 倍速(每音 2/3 拍)。骨架 1-3-5 / 8-10-12 / 11-9-7 / 5-4-2 / 1-0-1,
+  // 末組 1-0-1 唱回主音收束;換 key 兩段和弦(當前調 1-3-5 + 新調 1-3-5)各佔一整拍
   {
     id: 'ext-13',
     name: '延伸琶音音階',
-    dsl: '1:0.66666 3:0.66666 5:0.66666 8:0.66666 10:0.66666 12:0.66666 11:0.66666 9:0.66666 7:0.66666 5:0.66666 4:0.66666 1:0.66666',
+    tripletGap: 'both',
+    dsl: '1:0.66666 3:0.66666 5:0.66666 8:0.66666 10:0.66666 12:0.66666 11:0.66666 9:0.66666 7:0.66666 5:0.66666 4:0.66666 2:0.66666 1:0.66666 0:0.66666 1:0.66666',
   },
-].map((p) => ({ ...p, notes: parsePatternDsl(p.dsl) }));
+];
+
+export const PATTERNS: Array<Pattern & { dsl: string }> = PATTERN_SOURCE.map(
+  (p) => ({ ...p, notes: parsePatternDsl(p.dsl) })
+);
