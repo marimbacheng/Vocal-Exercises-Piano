@@ -1,4 +1,4 @@
-# 聲樂音階練習(vocal-warmup-piano)
+# Vocal Exercises Piano（vocal-warmup-piano）
 
 純前端 PWA:取樣鋼琴音色播放聲樂練習音型,自動半音移調,可離線使用。詳見 [docs/SPEC.md](docs/SPEC.md)。
 

@@ -13,7 +13,7 @@ export default defineConfig({
       manifest: {
         name: 'Vocal Exercises Piano',
         short_name: 'Vocal Exercises Piano',
-        description: '取樣鋼琴音色的聲樂音階練習,自動半音移調,可離線使用。',
+        description: 'Vocal exercise scales on a sampled grand piano, with automatic chromatic transposition. Works offline.',
         start_url: './',
         scope: './',
         display: 'standalone',
