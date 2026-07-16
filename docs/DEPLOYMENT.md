@@ -51,8 +51,27 @@ git push origin main
 ```
 push 後 workflow 自動重新 build + deploy 舊版。使用者端因 SW `autoUpdate`,重新整理即取得。
 
+## 連結預覽(分享網址時的卡片)
+
+由 `index.html` 的 Open Graph 標籤決定,**不是** manifest:
+- `og:title` / `og:site_name` / `twitter:title` = `Vocal Exercises Piano`(名稱)
+- `og:description` / `meta description` = 英文說明;`og:image` = 絕對網址的 `icon-512.png`
+- 歷史:早期無 OG,抓取器改讀 manifest 的中文 description,把「聲樂音階練習」當名稱(`a710e85`, `e4524ca` 修正)。
+
+⚠️ **各平台(LINE / iMessage / Facebook)會重度快取預覽卡片**,改完 OG 後**不會立即反映**。
+驗證方式:
+1. 用加查詢字串的新網址當作新連結:`https://marimbacheng.github.io/Vocal-Exercises-Piano/?v=2`
+2. 或用平台的 re-scrape 工具(如 Facebook Sharing Debugger)。
+3. 確認部署端是否正確,直接看原始 HTML(爬蟲看的就是這個,不執行 JS):
+```
+curl -s https://marimbacheng.github.io/Vocal-Exercises-Piano/ | grep -oE '<title>[^<]*</title>|og:[a-z_]+" content="[^"]*"'
+```
+看到卡片還是舊的**先別改 code**——先用上面第 3 步確認線上 HTML,多半只是快取。
+
 ## 上線注意事項
 
 - 換更大取樣或加檔案時,確認 `workbox.maximumFileSizeToCacheInBytes`(目前 5MB)與 `globPatterns` 仍涵蓋(陷阱 #5:漏 cache = 離線無聲)。
-- 改 `manifest` 圖示 / 名稱後,iOS 已加主畫面的使用者需移除重加才會更新圖示。
+- 改 `manifest` 圖示 / 名稱後,iOS 已加主畫面的使用者需**移除重加**才會更新圖示與名稱。
+- **iOS 加主畫面的預設名稱**由 `index.html` 的 `apple-mobile-web-app-title` 決定(非 `<title>`、非 manifest)。主畫面標籤會截斷長名,屬正常。
+- 首次載入必須有網路(SW 要先安裝 + 下載 1.5MB 取樣);之後才離線可用。
 - 實機驗證(只能在 iPhone 做):加主畫面啟動、實體靜音開關發聲、Wake Lock、來電後進 paused、飛航離線播放。

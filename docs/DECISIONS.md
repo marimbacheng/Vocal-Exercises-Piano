@@ -1,9 +1,12 @@
 # 技術決策 · DECISIONS
 
 紀錄「為什麼這樣選、排除了什麼」——commit message 已有的「做了什麼」不重複。
-本專案直接 push 到 `main`、**無 PR**,故引用 commit hash。
+本專案直接 push 到 `main`、**無 PR**,故引用 commit hash(無 PR 連結可附)。
 
 Repo: https://github.com/marimbacheng/Vocal-Exercises-Piano
+
+> **維護規則**:本檔記錄的是**現況**,不是流水帳。決策被推翻時**改寫該條**、把舊做法降級成「落選」,
+> 不要往下追加新條目——否則未來會把過時設計當成現行規格照做。
 
 ## 架構 / 骨架
 
@@ -25,38 +28,79 @@ Repo: https://github.com/marimbacheng/Vocal-Exercises-Piano
 - **中斷偵測**:`onAudioContextStateChange` 監聽 rawContext;state≠running 且播放中 → 自動 pause + 提示,不靜默空跑。resume 前先 `ensureAudioRunning()` 讓 context 從 suspended 恢復。
 - 測試環境假象:自動化瀏覽器分頁非 visible,取得 wake lock 會被 OS 立即釋放(觸發 release 事件),造成 request 計數持續增長——非 bug,實機 visible 分頁不會。
 
-## 使用者調整(部署後迭代)
+## 早期使用者調整(已穩定,未再變動)
 
-- **換 key 和弦延長一拍**(`d93a810`):gap 的 next-key triad `beats = gapBeats/2 + 1`,gap 總長 `gapBeats+1`。給演唱者換氣/定調時間。
-- **速度改二分音符 BPM**(`d93a810` 起,範圍後改於 `b9e29fe`):UI 顯示值 × 2 = 四分音符 BPM。目前 range 80–200(=四分 160–400)、default 80。storage key 升 `v2` 避免舊四分值被誤讀。**這是目前語意,未還原**——若要 UI 值就是一般 BPM,移除 `player.ts` 的 `× 2` 即可。
 - **移除鋼琴音源頁尾**(`d93a810`):CC BY 3.0 **法律要求標註**,不可全刪。改移入預設收合的「音源授權」`<details>`(README 也有),兼顧清爽與合規。
 - **暫停可改參數**(`d93a810`):disable 條件由 `isActive()` 改 `isPlaying()`(不含 paused)。暫停中改任一參數 → `dirtyWhilePaused`,繼續時 stop+start 從第一組帶新參數重跑;未改則維持 resume 從當前 run。
-- **移除 forceMajorCue、只留大調**:先移功能(`d93a810`),後移音階選擇器 UI(`e4aa6ae`)。`SCALES` 資料仍保留三個音階供 `degree`/`plan` 理論測試,不破壞測試。
+- **只留大調**:先移 forceMajorCue(`d93a810`),再移音階選擇器 UI(`e4aa6ae`),最後 `sanitizeParams` **一律強制回傳 `'major'`**(`8783dc9`)——因為舊 localStorage 存的小調 `scaleId` 會被沿用、導致續播小調。`SCALES` 仍保留三音階資料供 `degree`/`plan` 理論測試,不破壞測試。
 - **移除 UI 狀態字**(idle/playing/…,`d93a810`):`now-state` 只顯示 載入中/中斷/錯誤;`errorMsg` 改用獨立變數避免被 refresh 覆蓋。
 - **UI 改版:柔和淺藍終端風**(`6a1efc9`):深藍灰底 + 淡藍點綴取代深色綠,中英分區標題。後續(`e4aa6ae`)顯示面板去示波器格線、縮小,改**音高輪廓點陣**(NoteEvent 加 `indexInRun`,onNote 帶序號供高亮)。
-- **三連音音型**(`e4aa6ae`):ext-13 分組 `1-3-5 / 8-10-12 / 11-9-7 / 5-4-2 / 1`,每組一拍。用 `beats: 0.33333` 表示 1/3 拍(3×0.33333=0.99999,誤差約十萬分之一拍、聽感不可辨),沿用現有 DSL 不改 parser。落選:parser 加分數 `1/3`(需改 round-trip 測試,收益不成比例)。
-- **強制大調、修小調殘留**:UI 移除音階選擇器後(`e4aa6ae`),`sanitizeParams` 仍保留舊 `scaleId`,舊 localStorage 存的小調值會續播小調。改為 `sanitizeParams` 一律回傳 `'major'`,忽略任何存值。`SCALES` 三音階資料仍保留供理論測試。
-- **休止符 = DSL 的 `0`**:採簡譜慣例(`0` 即休止),`parsePatternDsl` 把 degree 0 解析為 `{degree:0, beats, rest:true}`。`buildSessionTimeline` 遇 rest 不排音符事件、只推進拍數(`indexInRun` 仍用 noteIdx 對齊輪廓);`computeSungRange` 濾掉 rest;`renderContour` 不畫 rest 的點(留空隙、data-i 保留供高亮對齊)。`degreeToSemitone(0)`(低 Ti,root−1)仍是有效數學,只是 DSL 層不再產出 degree-0 發聲音符。落選:另用 `r`/`_` 專屬 token——本 app 以簡譜為介面,`0` 最直覺,且低 Ti 無音型使用。
-- **顯示音名改首調唱名 / 簡譜**:`now-note` 由絕對音名(C4)改為當前音在音型中的級數 →「首調唱名 / 簡譜」(如 `Mi / 3`)。新增 `degreeToSolfege`/`degreeToJianpu`(note-name.ts,純函式);簡譜高/低八度用組合附加點 U+0307 / U+0323。`onNote` 由 midi 改查 `pattern[indexInRun].degree`。
-- **速度 80–130、間隔固定 2 拍**:`PARAM_LIMITS.bpm.max` 200→130;移除 TEMPO 的「間隔」stepper UI 與事件,`sanitizeParams` 強制 `gapBeats = FIXED_GAP_BEATS(2)`。`buildSessionTimeline` 仍接受任意 gapBeats(純邏輯測試不動)。
-- **ext-13 改 1/2 倍速**:每音 `beats` 由 0.33333→0.66666、末音 1→2,每組三連音由一拍變兩拍。整體放慢一半,degree 不變(range 測試不受影響)。
-- **三連音音型統一收尾 + 換 key**:`Pattern` 加 `triplet?: boolean`(ext-13、oct-rep4/hold/rep7);`SessionParams` 同步帶旗標。
-  - **結尾**收在三連音節奏:一般三連音末音 `1` → `1:0.66666 1:0.33333`(長短,共 1 拍);ext-13 因半速 → `1:1.33333 1:0.66666`(共 2 拍,保留原總長)。
-  - **換 key 間隔**:`buildSessionTimeline` 遇 `triplet` 時不放 gapCurrent,只放「一整拍的新調 1-3-5 提示和弦」(`gapNext`, beats=1),取代原本 current+next 兩段和弦。`player` 的 gap 狀態改由 gapCurrent **或** gapNext 觸發(三連音只有 gapNext)。落選:半速 ext-13 用 2 拍間隔——依使用者「一整拍」指示統一 1 拍。
-  - **八度頂音重複系列改三連音**:骨架 `1-3-5 / 8-8-8 / 8-5-3 / 1`。×4=4 個頂音(1 組 8-8-8 + 下行起音)、×7=7 個、長音=兩個整拍 8 夾在中間;名稱不變,僅節奏改三連音。
-- **全部三連音音型統一 1/2 倍速**(第二輪迭代):每音 2/3 拍(0.66666)、頂音長音 `8:2`、結尾長短 `1:1.33333 1:0.66666`。八度系列、五度跳、八度大跳、ext-13 一致。
-- **五度跳 / 八度大跳改三連音半速**:概念 `1-- 5-- 1-1`——每音 held 佔一個三連音組(2 拍)、結尾長短。DSL `1:2 5:2 1:1.33333 1:0.66666`(八度大跳把 5 換 8)。
-- **半速三連音換 key 間隔:當前調補第三顆 + 新調一整拍**(`tripletGap` 旗標,取代 `singleChordGap`):pattern 末音主音撐**前兩顆**三連音(`1:1.33333`),第三顆(2/3 拍)交給當前調三和弦(接過去),再接新調三和弦一整拍(2 拍)。當前調和弦剛好補滿最後一組三連音、對齊 grid。
-  - `'both'`(八度系列、ext-13、五度跳、八度大跳):當前調 1-3-5(2/3 拍)+ 新調 1-3-5(2 拍),每個 gap 共 2⅔ 拍。
-  - `'nextOnly'`(只放新調和弦 2 拍)仍為支援選項、有測試涵蓋,但目前無內建音型使用。
-  - 一般音型未設 → 標準間隔不變。`plan.ts` 依旗標分支;`player` gap 狀態由 gapCurrent 或 gapNext 觸發。
-  - 落選:當前調和弦也佔 2 拍(2+2)——與最後一組三連音脫節,使用者指正應為「主音撐兩顆 + 和弦補第三顆」。
-- **ext-13 結尾定案**:骨架 `1-3-5 / 8-10-12 / 11-9-7 / 5-4-2 / 1:1.33333`,末音主音撐前兩顆收束;第三顆為當前調三和弦(2/3 拍),再接新調三和弦一整拍。八度系列同此收尾形式。
-- **PATTERNS 型別**:抽出 `PATTERN_SOURCE`(`Array<Omit<Pattern,'notes'> & {dsl}>`)讓 `tripletGap` 字面值收斂為聯合型別,再 `.map` 補 `notes`。
-- **音名顯示固定位置**:`now-note` 拆成 `.solfege`(固定寬 3.2ch 置中)+ `.jianpu`,解決 Sol(3 字母)vs Do/Mi(2 字母)造成「/ 簡譜」位移。
-- **音型改名**:同音三連→**八度大跳**(`1 8 1`)、一五一→**五度跳**(`1 5 1`)、延伸琶音音階去除「(三連音)」註記。id 不變(`unison-x3`/`fifth-lhl`)避免舊 localStorage patternId 失效。
 
-## 已知陷阱(SPEC Section 7,實作時務必記得)
+## 參數與速度(現況)
+
+- **速度 = 二分音符 BPM**(`d93a810` 起;範圍定案於 `8783dc9`):UI 顯示值 **× 2 = 四分音符 BPM**(`player.ts` 的 `quarterBpm = bpm * 2`)。
+  **現行 range 80–130**(=四分 160–260)、default 80。storage key `v2`。
+  → **「一整拍」= 使用者感知的二分音符 = 2 個四分拍 = pattern DSL 的 `beats: 2`。** 這是所有和弦長度的換算基準。
+  落選:UI 值直接當四分音符 BPM(移除 `× 2` 即可,但會改變既有使用者的速度感)。
+- **間隔固定 2 拍**(`8783dc9`):移除 TEMPO 的「間隔」stepper UI 與事件,`sanitizeParams` 強制 `gapBeats = FIXED_GAP_BEATS(2)`。
+  `buildSessionTimeline` **仍接受任意 gapBeats**(純邏輯測試沿用),只是 UI 不再產出其他值。
+
+## 音型系統(現況)
+
+### 三連音系列——半速 + 統一收尾
+> 這一段經過 4 輪迭代才定案,以下是**最終規格**;中途版本(全速三連音、末音 `1:2`、單和弦間隔 `beats:1`、
+> 兩和弦各 2 拍、`1-0-1` 轉音…)**全部作廢**,勿回頭採用。
+
+- **半速三連音**:每顆三連音 = **2/3 四分拍(`0.66666`)**,三顆一組 = 2 四分拍 = **一整拍**。長音寫 `:2`。
+  用截斷值 `0.66666`/`1.33333`(非精確 2/3、4/3)以沿用現有 DSL parser;三顆相加 ≈1.99998,誤差約十萬分之一拍、聽感不可辨。
+  落選:parser 加分數語法(`1:2/3`)——需改 round-trip 測試,收益不成比例。
+- **統一收尾**:pattern 末音為**主音撐前兩顆**(`1:1.33333`),第三顆(2/3 拍)由 `plan.ts` 補**當前調三和弦**(接過去),
+  再接**新調三和弦一整拍(2 拍)**。當前調和弦剛好補滿最後一組三連音、對齊 grid;整體聽感比照「五度琶音 - 基本」的結尾和弦。
+  落選:①末音 `1:1.33333 1:0.66666`(長短兩個唱音)——第三顆應是和弦不是唱音;
+  ②兩和弦各佔 2 拍(2+2)——與最後一組三連音脫節、離格。
+- **`tripletGap` 旗標**(`Pattern` / `SessionParams`;取代早期的 `triplet` / `singleChordGap` 布林):
+  - `'both'` = 當前調三和弦(2/3 拍)+ 新調三和弦(2 拍),每個 gap 共 2⅔ 拍。**全部三連音音型都用這個。**
+  - `'nextOnly'` = 只放新調和弦 2 拍。仍支援、有測試涵蓋,但目前無內建音型使用。
+  - 未設 → 一般音型的標準間隔(當前調 `gapBeats/2` + 新調 `gapBeats/2+1`),不變。
+  - `plan.ts` 依旗標分支;`player` 的 gap 狀態由 gapCurrent **或** gapNext 觸發(單和弦時只有 gapNext)。
+
+### 休止符 = DSL 的 `0`(`5ba23aa`)
+採**簡譜慣例**(簡譜的 `0` 即休止),`parsePatternDsl` 把 degree 0 解析為 `{degree:0, beats, rest:true}`。
+- `buildSessionTimeline` 遇 rest **不排音符事件、只推進拍數**(`indexInRun` 仍用 noteIdx,才能對齊輪廓高亮)。
+- `computeSungRange` 濾掉 rest;`renderContour` 不畫 rest 的點(留空隙,data-i 保留供高亮對齊)。
+- **取捨**:`degreeToSemitone(0)`(低 Ti,root−1)仍是有效數學(degree.test 直接測),但 **DSL 層不再產出 degree-0 發聲音符**,
+  亦即低 Ti 無法再寫進音型。可接受:大調暖嗓不用它,且無音型使用。
+  落選:另用 `r`/`_` 專屬 token——本 app 以簡譜為介面,`0` 最直覺(使用者自己就是這樣寫的)。
+
+### 音型命名與清單(`5ba23aa`,共 21 個)
+依家族分組:**五度順階**×3、**五度琶音**×2、五度跳、八度跳、**梯形音階**×5、**梯形下行**×4、**長音階**×3、**折返音階**×2。
+- 舊名對照:五度上下行→五度順階、琶音→五度琶音(x3 已刪)、八度頂音重複→梯形音階、八度大跳→八度跳、延伸琶音音階→長音階。
+- **id 一律不變**(`p5-x1`/`arp-x1`/`oct-rep4`/`unison-x3`/`ext-13`…),避免舊 localStorage 的 `patternId` 失效;
+  故 id 與新名稱不完全對應(如 `oct-rep4` = 「梯形音階 - 基本」),屬刻意取捨。
+- **PATTERNS 型別**:抽出 `PATTERN_SOURCE`(`Array<Omit<Pattern,'notes'> & {dsl}>`)讓 `tripletGap` 字面值收斂為聯合型別,再 `.map` 補 `notes`。
+
+## 顯示(現況)
+
+- **音名改首調唱名 / 簡譜**(`8783dc9`):`now-note` 由絕對音名(C4)改為當前音在音型中的級數 →「首調唱名 / 簡譜」(如 `Mi / 3`)。
+  新增 `degreeToSolfege`/`degreeToJianpu`(note-name.ts,純函式);簡譜高/低八度用組合附加點 U+0307 / U+0323。
+  `onNote` 由 midi 改查 `pattern[indexInRun].degree`。
+- **音名固定位置**(`e6da3c2`):`now-note` 拆成 `.solfege`(固定寬 3.2ch 置中)+ `.jianpu`,
+  解決 Sol(3 字母)vs Do/Mi(2 字母)造成「/ 簡譜」左右位移。
+- **音域標籤**(`8783dc9`):起始音→「第一組起始音」、最高根音→「最高組起始音」、本次最高/最低演唱音→「本次最高/最低音」;stepper 音名置中。
+
+## 對外呈現(連結預覽 / iOS)
+
+- **iOS 加主畫面預設名稱**(`60bffd0`):由 `index.html` 的 `apple-mobile-web-app-title` 決定(不是 `<title>`)。
+  由 `Vocal Piano` 改為 `Vocal Exercises Piano`;manifest `short_name` 一併改為全名。
+  注意:iOS 主畫面**標籤會截斷**,但「加入主畫面」對話框帶入的預設名稱是完整字串。
+- **連結預覽固定英文名**(`a710e85`, `e4524ca`):原本**無 OG 標籤**,抓取器退而讀 manifest 的中文說明,把「聲樂音階練習」當成名稱。
+  加上 `og:title`/`og:site_name`/`twitter:title` = `Vocal Exercises Piano`,並把 meta/og/manifest 的 description **全改英文**,
+  讓部署頁面完全不含該中文字串。
+  **重點**:連結預覽卡片由各平台(LINE/iMessage/FB)**重度快取**,改完不會立即反映;
+  驗證要用加查詢字串的新網址(如 `?v=2`)或平台的 re-scrape 工具。這不是程式問題,別再改 code。
+- **頁尾署名**(`51c92e1`):`Made with 🫶🏻 by 仁聲歌唱音樂學苑鄭淩翔`,置中小字,放在收合的「音源授權」下方;可被固定控制列蓋住(使用者確認可接受)。
+
+## 已知陷阱(SPEC Section 7 + 後續累積,實作時務必記得)
 
 1. `-` 不可作 pattern 分隔符(與負數級數衝突),用空白。
 2. JS `-1 % 7 === -1`,degreeToSemitone 用 `((x%7)+7)%7`。
@@ -66,3 +110,9 @@ Repo: https://github.com/marimbacheng/Vocal-Exercises-Piano
 6. setTimeout 手機必 drift → 用 Tone.Transport。
 7. topRoot 是根音不是最高音 → 即時音域回饋(SPEC 2.6)不可省。
 8. Wake Lock 在 visibilitychange 後失效 → 需重新 request。
+9. **DSL 的 `0` 是休止符,不是 degree 0**。要在音型加音時別誤用 `0`;rest 不發聲、不計音域、不畫輪廓點。
+10. **「一整拍」= 2 個四分拍**(速度是二分音符 BPM)。和弦/長音長度算錯多半是把「拍」當成四分音符。
+11. **`patternToDsl` 在 `beats === 1` 時省略 beats**,寫音型 DSL 時若要 round-trip 測試過,整拍音符要寫 `8` 而非 `8:1`。
+12. **音型 id 與顯示名稱刻意不對應**(如 `oct-rep4` = 「梯形音階 - 基本」),不要為了「整齊」改 id——會讓使用者存的 patternId 失效。
+13. **連結預覽卡片被平台重度快取**,改 OG 後不會立即生效;用 `?v=N` 新網址驗證,別以為 code 沒改對。
+14. **`sanitizeParams` 會強制覆寫** `scaleId`(→major)與 `gapBeats`(→2);想新增可調參數時記得這裡是最後守門。
