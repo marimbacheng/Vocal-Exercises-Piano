@@ -6,13 +6,13 @@ export type AppParams = {
   patternId: string;
   startRoot: number; // MIDI 36–84
   topRoot: number; // MIDI 36–84,>= startRoot
-  bpm: number; // 二分音符 BPM 80–200(四分音符為其兩倍)
+  bpm: number; // 二分音符 BPM 60–130(四分音符為其兩倍)
   gapBeats: number; // 1–4
 };
 
 export const PARAM_LIMITS = {
   root: { min: 36, max: 84 },
-  bpm: { min: 80, max: 130 }, // 二分音符 BPM;實際四分音符 = 兩倍(160–260)
+  bpm: { min: 60, max: 130 }, // 二分音符 BPM;實際四分音符 = 兩倍(120–260)
   gapBeats: { min: 1, max: 4 },
 } as const;
 

@@ -19,9 +19,9 @@ describe('sanitizeParams — 外部輸入必經驗證', () => {
     expect(p.patternId).toBe('p5-x1');
   });
 
-  it('bpm 超界 → clamp 到二分音符 80–130', () => {
+  it('bpm 超界 → clamp 到二分音符 60–130', () => {
     expect(sanitizeParams({ ...DEFAULT_PARAMS, bpm: 999 }).bpm).toBe(130);
-    expect(sanitizeParams({ ...DEFAULT_PARAMS, bpm: 1 }).bpm).toBe(80);
+    expect(sanitizeParams({ ...DEFAULT_PARAMS, bpm: 1 }).bpm).toBe(60);
   });
 
   it('gapBeats 固定 2 拍(UI 已移除間隔調整)', () => {

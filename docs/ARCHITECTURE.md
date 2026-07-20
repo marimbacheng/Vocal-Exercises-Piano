@@ -26,7 +26,7 @@ theory/   純函式,零依賴(不 import Tone)——可在 node 測試環境跑
 | `session/plan.ts` | `buildRootSequence`(半音上下行)、`buildTriad`、`buildSessionTimeline`——把整個 session 展開成以「拍」為軸的純資料事件列表(count-in / note / gap triad)。休止符只推進拍數不排事件;換 key 間隔依 `tripletGap` 分支。 |
 | `session/range.ts` | `computeSungRange`(SPEC 2.6 即時音域,**排除休止符**)、`checkSungRange`(超取樣器音域→警告)。 |
 | `session/player.ts` | `SessionPlayer`:把 timeline 排上 `Tone.Transport`。狀態機 idle→countIn→playing⇄gap→(paused)→finished。start/pause/resume/stop。 |
-| `state/params.ts` | `AppParams`、`DEFAULT_PARAMS`、`PARAM_LIMITS`(bpm 80–130)、`FIXED_GAP_BEATS(2)`、`sanitizeParams`(強制 scaleId=major、gapBeats=2)、localStorage 讀寫(key `v2`)。 |
+| `state/params.ts` | `AppParams`、`DEFAULT_PARAMS`、`PARAM_LIMITS`(bpm 60–130)、`FIXED_GAP_BEATS(2)`、`sanitizeParams`(強制 scaleId=major、gapBeats=2)、localStorage 讀寫(key `v2`)。 |
 | `audio/player.ts` | `loadSampler`(Salamander mp3)、`ensureAudioRunning`(Tone.start)、`onAudioContextStateChange`(中斷偵測)。 |
 | `audio/sampler-range.ts` | 取樣器音域常數(C2–C6)。獨立成無依賴模組,讓 range 純邏輯不必 import Tone。 |
 | `platform/ios-audio.ts` | `unlockAudioSession`——首次手勢播放循環無聲 WAV,設定 iOS audio session(靜音開關發聲)。 |

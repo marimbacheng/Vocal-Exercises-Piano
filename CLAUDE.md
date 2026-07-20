@@ -20,7 +20,7 @@ docs/          SPEC / ARCHITECTURE / DECISIONS / DEPLOYMENT
 ## 關鍵慣例(不知道會踩坑)
 - **純邏輯不 import Tone**:theory/、session/plan、range、params 保持零音訊依賴,才能 node 測試。
 - **音符只排在 `Tone.Transport` ticks 上,禁用 setTimeout**(手機 drift)。
-- **速度是二分音符 BPM**(UI range 80–130):player 內 `quarterBpm = bpm × 2` 才是四分音符。
+- **速度是二分音符 BPM**(UI range 60–130):player 內 `quarterBpm = bpm × 2` 才是四分音符。
   → **「一整拍」= 2 個四分拍 = `beats: 2`**。算和弦/長音長度前先想清楚這個。
 - **pattern DSL**:空白分隔(`-` 保留給負數級數);`degree` 或 `degree:beats`;**`0` = 休止符**(簡譜慣例,不發聲、不計音域)。
 - **三連音系列一律半速**:每顆 `0.66666`(2/3 拍),三顆=一整拍;長音 `:2`。末音 `1:1.33333`(主音撐前兩顆),

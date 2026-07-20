@@ -39,7 +39,7 @@ Repo: https://github.com/marimbacheng/Vocal-Exercises-Piano
 ## 參數與速度(現況)
 
 - **速度 = 二分音符 BPM**(`d93a810` 起;範圍定案於 `8783dc9`):UI 顯示值 **× 2 = 四分音符 BPM**(`player.ts` 的 `quarterBpm = bpm * 2`)。
-  **現行 range 80–130**(=四分 160–260)、default 80。storage key `v2`。
+  **現行 range 60–130**(=四分 120–260)、default 80。storage key `v2`。下限由 80 放寬到 60,讓慢速暖嗓可用;上限與 default 不變。
   → **「一整拍」= 使用者感知的二分音符 = 2 個四分拍 = pattern DSL 的 `beats: 2`。** 這是所有和弦長度的換算基準。
   落選:UI 值直接當四分音符 BPM(移除 `× 2` 即可,但會改變既有使用者的速度感)。
 - **間隔固定 2 拍**(`8783dc9`):移除 TEMPO 的「間隔」stepper UI 與事件,`sanitizeParams` 強制 `gapBeats = FIXED_GAP_BEATS(2)`。
