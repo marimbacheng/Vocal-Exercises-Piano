@@ -19,6 +19,18 @@ Repo: https://github.com/marimbacheng/Vocal-Exercises-Piano
 - **Salamander Grand Piano 取樣**(CC BY 3.0),C2–C6 每小三度 17 檔共 1.2MB。授權要求標註(見下)。
 - **Transport ticks 排程,禁用 setTimeout**——手機 timer 必然 drift(SPEC 陷阱 #6)。
 - **結尾收尾 bug**(`d8b413d` 前修):session 結尾 `transport.stop()` 歸零 position 後,tick 0 的 count-in 會在同一 lookahead 重放。修法:finished 回呼內先 `cancel(0)` 再 `stop(time)`。
+- **取樣載入不可用 `Tone.loaded()`**(修「Android 開始鍵永久變暗」):`Tone.loaded()` 等的是**全域** `ToneAudioBuffer.downloads` 陣列,
+  而把項目移出陣列的程式寫在該下載自己的 `finally` 裡——請求 stall 就永遠不會被移除,**全域陣列被永久污染**,
+  之後每次 `Tone.loaded()` 都被那筆舊的擋死,連建新 Sampler 也救不回來。行動網路(Android 弱訊號)常見「連著但沒吞吐」,
+  fetch 不報錯也不完成 → UI 永遠停在「載入中…」、`playBtn.disabled` 永久為 true。
+  改用 **Sampler 實例自己的 `onload`/`onerror`**,把等待收斂到單一實例;外加 **20s 逾時**讓 stall 變成可見錯誤。
+  另修:`sampler` 改為**只在成功後才指派**(舊版在 await 前就指派,載入失敗後下次呼叫會拿到半成品 → transport 照跑但完全無聲);
+  並行呼叫共用 in-flight promise。
+  **逾時不自動重試**——Tone 用裸 `fetch`、無 `AbortController`,卡住的請求無法中止,立刻重試只是再空等一輪;
+  改為回報可行動訊息由使用者手動再按。非逾時的失敗(404 / 解碼錯誤)才自動重試一次。
+  落選:①只在 `Tone.loaded()` 外包 timeout——全域污染仍在,重試照樣卡死(淺層修復);②逾時後自動重試——見上。
+- **載入中可按「停止」中止**:UI 加 `startGen` 序號,按停止即遞增作廢該次啟動(否則載完會自己開始播、且 `loading` 不會收掉)。
+  給弱網使用者立即的逃生出口,不必乾等 20s。`loading` 另在 `finally` 兜底歸零。
 - **pause/resume**:抽出 `scheduleAndStart(fromRunIndex)`,start 與 resume 共用。resume 從當前 run 開頭重排,略過 count-in 與該 run 前的 gap,時間軸 rebase。落選:從半個 run 中間接續(對練唱無意義,SPEC 2.4)。
 
 ## iOS(SPEC 3.4 / 3.5)
@@ -116,3 +128,8 @@ Repo: https://github.com/marimbacheng/Vocal-Exercises-Piano
 12. **音型 id 與顯示名稱刻意不對應**(如 `oct-rep4` = 「梯形音階 - 基本」),不要為了「整齊」改 id——會讓使用者存的 patternId 失效。
 13. **連結預覽卡片被平台重度快取**,改 OG 後不會立即生效;用 `?v=N` 新網址驗證,別以為 code 沒改對。
 14. **`sanitizeParams` 會強制覆寫** `scaleId`(→major)與 `gapBeats`(→2);想新增可調參數時記得這裡是最後守門。
+15. **禁用 `Tone.loaded()`**——它等全域 `downloads` 陣列,一筆 stall 就永久污染,之後所有載入都卡死。
+    用 Sampler 實例的 `onload`/`onerror` + 逾時。Tone 內部是裸 `fetch`、**無法中止**已送出的請求。
+16. **任何會讓 `loading` 卡住的路徑 = 開始鍵永久變暗**(`playBtn.disabled = loading || …`)。
+    新增 await 步驟時務必確保有逾時與 `finally` 歸零。「開始鍵是暗的」另一個合法原因是音域超標(SPEC 2.5),
+    差別:那時按鈕文字仍是「▶ 開始」且旁邊有音域警告;載入卡住則顯示「載入中…」。

@@ -44,6 +44,9 @@ export function mountApp(root: HTMLElement, storage: Storage): void {
   let errorMsg = '';
   let dirtyWhilePaused = false; // 暫停期間改過參數 → 繼續時從第一組重跑
   let player: SessionPlayer | null = null;
+  // 每次「開始」的序號。載入取樣可能等上數秒(弱網更久),期間按「停止」要能作廢這次啟動,
+  // 否則載完會自己開始播,且 loading 不會被收掉 → 開始鍵一直是暗的。
+  let startGen = 0;
 
   root.innerHTML = `
     <header class="app-header">
@@ -364,21 +367,31 @@ export function mountApp(root: HTMLElement, storage: Storage): void {
     errorMsg = '';
     dirtyWhilePaused = false;
     loading = true;
+    const gen = ++startGen;
     refreshPlaybackDisplay();
     try {
       const p = await getPlayer();
+      if (gen !== startGen) return; // 載入期間按了停止 → 放棄這次啟動
       if (p.getState() !== 'idle' && p.getState() !== 'finished') p.stop();
       loading = false;
       p.start(makeSessionParams(), params.bpm);
     } catch (err) {
-      loading = false;
+      if (gen !== startGen) return;
       playback = 'idle';
       errorMsg = `錯誤:${err instanceof Error ? err.message : String(err)}`;
-      refreshPlaybackDisplay();
+    } finally {
+      // 保險:任何路徑都不能讓 loading 卡住(卡住 = 開始鍵永久 disabled)
+      if (gen === startGen && loading) {
+        loading = false;
+        refreshPlaybackDisplay();
+      }
     }
   });
 
   stopBtn.addEventListener('click', () => {
+    // 作廢進行中的載入/啟動:弱網卡在「載入中…」時,這是使用者的逃生出口
+    startGen++;
+    loading = false;
     player?.stop();
     playback = 'idle';
     interrupted = false;
