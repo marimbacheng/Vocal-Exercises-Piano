@@ -98,7 +98,7 @@ export function mountApp(root: HTMLElement, storage: Storage): void {
     </div>
 
     <div class="section">
-      <div class="section-label">速度 <span>· TEMPO</span></div>
+      <div class="section-label">速度 <span>· BPM</span></div>
       <div class="panel">
         <div class="row">
           <label for="bpm">速度</label>
@@ -110,7 +110,7 @@ export function mountApp(root: HTMLElement, storage: Storage): void {
 
     <details>
       <summary>加入主畫面（iOS）</summary>
-      <p>請點底部工具列的「分享」→「加入主畫面」，即可像 App 一樣全螢幕、離線使用。</p>
+      <p>若從 LINE 開啟，先點選右下角三個點的功能鍵，選擇「在瀏覽器中開啟」，開啟後點選工具列中的「分享」→「檢視更多」→「加入主畫面」→「加入」，即可像 App 一樣全螢幕、離線使用。</p>
     </details>
 
     <details>
