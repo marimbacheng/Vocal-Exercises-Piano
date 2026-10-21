@@ -55,3 +55,26 @@ describe('degreeToMidi', () => {
     expect(degreeToMidi(-1, 60, major)).toBe(57);
   });
 });
+
+describe('degreeToSemitone — 變化音 alter', () => {
+  const major = SCALES.find((s) => s.id === 'major')!;
+
+  it('alter = -1 → 比自然音低一個半音', () => {
+    expect(degreeToSemitone(3, major)).toBe(4); // Mi
+    expect(degreeToSemitone(3, major, -1)).toBe(3); // ♭3
+    expect(degreeToSemitone(7, major)).toBe(11); // Ti
+    expect(degreeToSemitone(7, major, -1)).toBe(10); // ♭7
+  });
+
+  it('alter 預設 0,不影響既有行為', () => {
+    expect(degreeToSemitone(5, major, 0)).toBe(degreeToSemitone(5, major));
+  });
+
+  it('跨八度仍正確:高八度的 ♭3(degree 10)', () => {
+    expect(degreeToSemitone(10, major, -1)).toBe(3 + 12);
+  });
+
+  it('degreeToMidi 一併套用', () => {
+    expect(degreeToMidi(7, 60, major, -1)).toBe(70); // C4 + 10 = B♭4
+  });
+});

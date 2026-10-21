@@ -45,3 +45,20 @@ describe('degreeToJianpu — 簡譜數字 + 八度點', () => {
     expect(degreeToJianpu(-1)).toBe('6̣');
   });
 });
+
+describe('降音顯示(alter = -1)', () => {
+  it('唱名用降音慣例:♭3 = Me、♭7 = Te', () => {
+    expect(degreeToSolfege(3, -1)).toBe('Me');
+    expect(degreeToSolfege(7, -1)).toBe('Te');
+    expect(degreeToSolfege(3)).toBe('Mi'); // 預設不變
+  });
+
+  it('簡譜 ♭ 放數字前', () => {
+    expect(degreeToJianpu(3, -1)).toBe('♭3');
+    expect(degreeToJianpu(7, -1)).toBe('♭7');
+  });
+
+  it('高八度的降音:♭ 在前、八度點仍組合在數字上', () => {
+    expect(degreeToJianpu(10, -1)).toBe('♭3\u0307');
+  });
+});

@@ -212,11 +212,11 @@ export function mountApp(root: HTMLElement, storage: Storage): void {
   }
 
   /** 顯示首調唱名 / 簡譜(依當前音在音型中的級數) */
-  function pulseNote(degree: number): void {
+  function pulseNote(degree: number, alter = 0): void {
     // 首調唱名寬度不一(Sol 3 字母、Do 2 字母);固定寬置中,讓「/ 簡譜」不位移
     nowNote.innerHTML =
-      `<span class="solfege">${degreeToSolfege(degree)}</span>` +
-      `<span class="jianpu"> / ${degreeToJianpu(degree)}</span>`;
+      `<span class="solfege">${degreeToSolfege(degree, alter)}</span>` +
+      `<span class="jianpu"> / ${degreeToJianpu(degree, alter)}</span>`;
     nowNote.classList.remove('pulse');
     void nowNote.offsetWidth; // 強制 reflow 以重啟動畫
     nowNote.classList.add('pulse');
@@ -227,7 +227,7 @@ export function mountApp(root: HTMLElement, storage: Storage): void {
     const scale = currentScale();
     const notes = currentPatternNotes();
     const sung = notes
-      .map((note, i) => ({ note, i, semi: degreeToSemitone(note.degree, scale) }))
+      .map((note, i) => ({ note, i, semi: degreeToSemitone(note.degree, scale, note.alter ?? 0) }))
       .filter((s) => !s.note.rest);
     const semis = sung.map((s) => s.semi);
     const min = Math.min(...semis);
@@ -328,7 +328,7 @@ export function mountApp(root: HTMLElement, storage: Storage): void {
         },
         onNote: (_midi, idx) => {
           const note = currentPatternNotes()[idx];
-          if (note) pulseNote(note.degree);
+          if (note) pulseNote(note.degree, note.alter ?? 0);
           highlightContour(idx);
         },
       });

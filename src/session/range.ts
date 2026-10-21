@@ -17,7 +17,9 @@ export function computeSungRange(
   topRoot: number
 ): SungRange {
   // 休止符不發聲,不計入音域
-  const semis = pattern.filter((n) => !n.rest).map((n) => degreeToSemitone(n.degree, scale));
+  const semis = pattern
+    .filter((n) => !n.rest)
+    .map((n) => degreeToSemitone(n.degree, scale, n.alter ?? 0));
   return {
     maxMidi: topRoot + Math.max(...semis),
     minMidi: startRoot + Math.min(...semis),

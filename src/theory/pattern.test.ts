@@ -34,6 +34,16 @@ describe('parsePatternDsl — 基本解析', () => {
     ]);
   });
 
+  it('降記號後綴 b:「7b」「3b:2」', () => {
+    expect(parsePatternDsl('7b')).toEqual([{ degree: 7, beats: 1, alter: -1 }]);
+    expect(parsePatternDsl('3b:2')).toEqual([{ degree: 3, beats: 2, alter: -1 }]);
+    expect(parsePatternDsl('-1b')).toEqual([{ degree: -1, beats: 1, alter: -1 }]);
+  });
+
+  it('自然音不帶 alter 欄位', () => {
+    expect(parsePatternDsl('7')).toEqual([{ degree: 7, beats: 1 }]);
+  });
+
   it('多餘空白容忍(前後與中間)', () => {
     expect(parsePatternDsl('  1   5  1  ')).toEqual([
       { degree: 1, beats: 1 },
@@ -55,6 +65,10 @@ describe('parsePatternDsl — 拒絕非法輸入', () => {
     ['「-」作分隔符', '1-3-5'],
     ['多重冒號', '1:2:3'],
     ['空 beats', '5:'],
+    ['休止符加降記號', '0b'],
+    ['重複降記號', '7bb'],
+    ['單獨的 b', 'b'],
+    ['降記號在前', 'b7'],
   ];
 
   it.each(illegal)('%s:「%s」必須 throw', (_label, dsl) => {
@@ -64,7 +78,7 @@ describe('parsePatternDsl — 拒絕非法輸入', () => {
 
 describe('round-trip — 內建音型', () => {
   it('內建音型共 21 個', () => {
-    expect(PATTERNS).toHaveLength(22);
+    expect(PATTERNS).toHaveLength(23);
   });
 
   it.each(PATTERNS.map((p) => [p.id, p] as const))(
@@ -73,6 +87,11 @@ describe('round-trip — 內建音型', () => {
       expect(patternToDsl(pattern.notes)).toBe(pattern.dsl);
     }
   );
+
+  it('降記號 round-trip', () => {
+    const dsl = '1 3b 5 7b 8:2 7b:0.5 0';
+    expect(patternToDsl(parsePatternDsl(dsl))).toBe(dsl);
+  });
 
   it('帶小數 beats 的 round-trip', () => {
     const dsl = '1 3:1.5 5:0.5 8';

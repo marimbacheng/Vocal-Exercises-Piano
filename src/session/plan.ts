@@ -101,7 +101,7 @@ export function buildSessionTimeline(params: SessionParams): SessionTimeline {
           kind: 'note',
           atBeat: beat,
           beats: note.beats,
-          midi: degreeToMidi(note.degree, root, scale),
+          midi: degreeToMidi(note.degree, root, scale, note.alter ?? 0),
           runIndex: i,
           indexInRun: noteIdx,
           root,

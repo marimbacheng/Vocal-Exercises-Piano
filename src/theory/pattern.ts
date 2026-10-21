@@ -2,6 +2,11 @@ export type Note = {
   degree: number; // 複合級數,可為任意整數(rest 時固定為 0、不發聲)
   beats: number; // 時值,單位=四分音符拍數
   rest?: boolean; // 休止符:佔時間但不發聲(DSL 用「0」表示,同簡譜慣例)
+  /**
+   * 變化音(半音)。DSL 目前只產生 `-1`(降記號,後綴 `b`,如 `7b`);未設 = 自然音。
+   * 用數字而非布林,之後要加升記號(`+1`)不必改型別。
+   */
+  alter?: number;
 };
 
 export type Pattern = {
@@ -16,7 +21,8 @@ export type Pattern = {
 };
 
 /** 合法整數(允許負號,不允許小數/亂碼);"-1" 是合法 degree */
-const INT_RE = /^-?\d+$/;
+/** degree:整數,可加後綴 `b` 表降記號(如 `7b`、`-1b`) */
+const DEGREE_RE = /^(-?\d+)(b?)$/;
 /** beats 允許正小數,如 0.5 */
 const BEATS_RE = /^\d+(\.\d+)?$/;
 
@@ -37,10 +43,14 @@ export function parsePatternDsl(dsl: string): Note[] {
       throw new Error(`非法 token「${token}」:最多一個冒號`);
     }
     const [degreeStr, beatsStr] = parts;
-    if (!INT_RE.test(degreeStr)) {
-      throw new Error(`非法 degree「${degreeStr}」:必須為整數(分隔符用空白,不可用 -)`);
+    const degreeMatch = DEGREE_RE.exec(degreeStr);
+    if (!degreeMatch) {
+      throw new Error(
+        `非法 degree「${degreeStr}」:必須為整數,可加後綴 b 表降記號(分隔符用空白,不可用 -)`
+      );
     }
-    const degree = parseInt(degreeStr, 10);
+    const degree = parseInt(degreeMatch[1], 10);
+    const flat = degreeMatch[2] === 'b';
     let beats = 1;
     if (beatsStr !== undefined) {
       if (!BEATS_RE.test(beatsStr)) {
@@ -52,15 +62,22 @@ export function parsePatternDsl(dsl: string): Note[] {
       }
     }
     // degree 0 = 休止符(簡譜慣例):佔時間但不發聲。degree 固定 0,標記 rest。
-    if (degree === 0) return { degree: 0, beats, rest: true };
-    return { degree, beats };
+    if (degree === 0) {
+      if (flat) throw new Error('非法 token「0b」:休止符不可加降記號');
+      return { degree: 0, beats, rest: true };
+    }
+    // 自然音不放 alter 欄位,維持既有 toEqual 斷言與 DSL round-trip 不變
+    return flat ? { degree, beats, alter: -1 } : { degree, beats };
   });
 }
 
 /** Note[] → DSL 字串(round-trip 用)。beats = 1 時省略 */
 export function patternToDsl(notes: Note[]): string {
   return notes
-    .map((n) => (n.beats === 1 ? `${n.degree}` : `${n.degree}:${n.beats}`))
+    .map((n) => {
+      const d = `${n.degree}${n.alter === -1 ? 'b' : ''}`;
+      return n.beats === 1 ? d : `${d}:${n.beats}`;
+    })
     .join(' ');
 }
 
@@ -120,6 +137,10 @@ const PATTERN_SOURCE: Array<Omit<Pattern, 'notes'> & { dsl: string }> = [
   // 後半改用高八度當踏板,音程逐步縮小
   { id: 'ivl-expand', name: '大調音程擴展',
     dsl: '1 2 1 3 1 4 1 5 1 6 1 7 1 8 1 0 8 7 8 6 8 5 8 4 8 3 8 2 8 1' },
+  // 七和弦(一般音型):四段琶音,段間 0 換氣。
+  // 三和弦 → 大七(7) → 屬七(7b) → 小七(3b 7b),同一主音上比較和弦色彩
+  { id: 'seventh', name: '七和弦',
+    dsl: '1 3 5 8 5 3 1 0 1 3 5 7 8 7 5 3 1 0 1 3 5 7b 8 7b 5 3 1 0 1 3b 5 7b 8 7b 5 3b 1' },
 ];
 
 export const PATTERNS: Array<Pattern & { dsl: string }> = PATTERN_SOURCE.map(
