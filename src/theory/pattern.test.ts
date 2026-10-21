@@ -64,7 +64,7 @@ describe('parsePatternDsl — 拒絕非法輸入', () => {
 
 describe('round-trip — 內建音型', () => {
   it('內建音型共 21 個', () => {
-    expect(PATTERNS).toHaveLength(21);
+    expect(PATTERNS).toHaveLength(22);
   });
 
   it.each(PATTERNS.map((p) => [p.id, p] as const))(
