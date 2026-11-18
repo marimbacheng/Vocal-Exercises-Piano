@@ -5,6 +5,16 @@ import { VitePWA } from 'vite-plugin-pwa';
 export default defineConfig({
   // GitHub Pages 子路徑部署,資產一律相對路徑(SPEC Section 5,陷阱 #4)
   base: './',
+  build: {
+    rollupOptions: {
+      input: {
+        main: 'index.html',
+        // SPIKE(丟棄式):iOS 麥克風 × 播放驗證頁,驗證完連同 src/spike/ 一起刪除。
+        // 必須留在 precache(globPatterns 含 html),否則 SW 的 NavigationRoute 會把它導回 index.html(陷阱 #18)
+        spikeMic: 'spike-mic.html',
+      },
+    },
+  },
   plugins: [
     VitePWA({
       registerType: 'autoUpdate',

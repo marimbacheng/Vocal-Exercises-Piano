@@ -122,6 +122,35 @@ Repo: https://github.com/marimbacheng/Vocal-Exercises-Piano
   解決 Sol(3 字母)vs Do/Mi(2 字母)造成「/ 簡譜」左右位移。
 - **音域標籤**(`8783dc9`):起始音→「第一組起始音」、最高根音→「最高組起始音」、本次最高/最低演唱音→「本次最高/最低音」;stepper 音名置中。
 
+## 音準模式(規劃中;iOS spike 驗證中)
+
+**有意識推翻 SPEC Section 0 的非目標「不做錄音、不做音準偵測 / pitch detection」**(使用者於 2026-11 拍板)。
+原本劃這條線是為了專案初期防 scope creep;核心練唱功能已穩定,時機成熟。
+- **理由**:這是練唱 app 最自然的下一步。且本 app **已知每一刻的目標音**(`onNote(midi, indexInRun)`),
+  可直接顯示「目標 A4,你高了 23 cents」——這是一般調音 app 做不到、值得做在這裡的原因。
+- **架構**:音高偵測為純函式(預計 `analysis/pitch.ts`,吃 `Float32Array` 回頻率,可用合成正弦波在 Vitest 測);
+  麥克風封裝在 `platform/mic.ts`,與 `ios-audio.ts`、`wake-lock.ts` 並列;即時繪製走 `requestAnimationFrame`,不違反禁用 setTimeout。
+  音準模式**只即時分析、不儲存任何錄音**。
+- **獨立模式(確定採用)**:「練唱模式 / 音準模式」二選一,**麥克風只在使用者切到音準模式時才啟動**。
+  把 iOS session 風險與權限詢問關在一個開關後面,不影響現有練唱流程。
+- **必要條件(確定)**:**戴耳機**,或**電腦播放音階、手機靠近自己當收音麥克風**(雙機)。
+  麥克風會收到鋼琴聲,瀏覽器 `echoCancellation` 是為講話設計,對持續樂音不可靠——UI 須明確告知此條件。
+- **待驗證(最大風險)**:iOS 一旦 `getUserMedia`,audio session 由 `playback` 切成 `playAndRecord`,
+  可能把輸出改路由到**聽筒**(音量大降),並與 `unlockAudioSession` 的靜音開關 workaround 交互作用。
+  以 `spike-mic.html`(丟棄式測試頁,沿用正式的 `unlockAudioSession` + `loadSampler`)在真機驗證後再決定實作形態。
+- 落選:①麥克風常駐開啟——iOS 風險與權限詢問會擴散到所有使用者;②依賴 `echoCancellation` 讓單機外放可用——對樂音不可靠。
+- **spike 第一輪結果(2026-11-18,Mac Chrome 153,內建麥克風)**:
+  - ✅ 真人聲長音讀數穩定且準(演算法先以 38 組合成訊號驗證,誤差 < 0.6 cents、無八度誤判)。
+  - ✅ 效能:每次偵測平均 0.69 ms、最大 7.5 ms(60fps 預算 16.7 ms)。iPhone 待測。
+  - ✅ 喇叭外放時麥克風**確實收到鋼琴聲**→ 證實「戴耳機或雙機」為必要條件;**戴有線耳機即解決**。
+  - ✅ Chrome 會照收音設定給原始訊號(`getSettings()` 中 EC/NS/AGC/voiceIsolation 皆 false)。
+  - ⚠️ 藍牙耳機音質沒變差,但原因是 **Chrome 沿用網站設定裡記住的內建麥克風**,沒有用到耳機的麥克風(紀錄可證)。
+    正確結論是「輸入用內建麥克風、輸出用藍牙」不會掉成通話音質——這正是音準模式的理想組合;
+    **耳機麥克風被選用時是否掉成通話音質,仍須在 iPhone 驗證**(iOS 連 AirPods 時通常直接用耳機麥克風)。
+  - ⚠️ 「收到鋼琴聲」比例會把**跟著鋼琴唱同音**也算進去;第一輪的 43% 混了多種情境,不採用。
+    spike 已改為每段(重算/關麥)各自寫入紀錄,步驟改為「重算後完全不出聲約 10 秒」。
+  - ❓ 未回答(Mac 無此情境):**iOS 開麥後是否改路由到聽筒、靜音開關是否失效**——最大風險仍待 iPhone 驗證。
+
 ## 對外呈現(連結預覽 / iOS)
 
 - **iOS 加主畫面預設名稱**(`60bffd0`):由 `index.html` 的 `apple-mobile-web-app-title` 決定(不是 `<title>`)。
@@ -155,10 +184,13 @@ Repo: https://github.com/marimbacheng/Vocal-Exercises-Piano
 12. **音型 id 與顯示名稱刻意不對應**(如 `oct-rep4` = 「梯形音階 - 基本」),不要為了「整齊」改 id——會讓使用者存的 patternId 失效。
 13. **連結預覽卡片被平台重度快取**,改 OG 後不會立即生效;用 `?v=N` 新網址驗證,別以為 code 沒改對。
 14. **`sanitizeParams` 會強制覆寫** `scaleId`(→major)與 `gapBeats`(→2);想新增可調參數時記得這裡是最後守門。
-17. **大調級數湊不出 ♭3 / ♭7**——可得半音類只有 `[0,2,4,5,7,9,11]`。要寫變化音**只能用後綴 `b`**,
-    不要試圖用複合級數或換音階繞過。`alter` 必須一路傳到 `degreeToSemitone/Midi`,漏傳會靜默唱成自然音。
 15. **禁用 `Tone.loaded()`**——它等全域 `downloads` 陣列,一筆 stall 就永久污染,之後所有載入都卡死。
     用 Sampler 實例的 `onload`/`onerror` + 逾時。Tone 內部是裸 `fetch`、**無法中止**已送出的請求。
 16. **任何會讓 `loading` 卡住的路徑 = 開始鍵永久變暗**(`playBtn.disabled = loading || …`)。
     新增 await 步驟時務必確保有逾時與 `finally` 歸零。「開始鍵是暗的」另一個合法原因是音域超標(SPEC 2.5),
     差別:那時按鈕文字仍是「▶ 開始」且旁邊有音域警告;載入卡住則顯示「載入中…」。
+17. **大調級數湊不出 ♭3 / ♭7**——可得半音類只有 `[0,2,4,5,7,9,11]`。要寫變化音**只能用後綴 `b`**,
+    不要試圖用複合級數或換音階繞過。`alter` 必須一路傳到 `degreeToSemitone/Midi`,漏傳會靜默唱成自然音。
+18. **SW 會把未 precache 的 html 導航一律回成 `index.html`**(workbox `NavigationRoute` fallback)。
+    新增任何獨立 html 頁(如 spike)**必須留在 precache 裡**——`globPatterns` 已含 html,勿用 `globIgnores` 排除;
+    已裝 app 的裝置第一次開新頁仍是舊 SW 控管,可能先看到主 app,重新整理一次即正確。
