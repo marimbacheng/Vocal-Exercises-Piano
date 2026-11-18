@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="robots" content="noindex" />
-    <title>Spike · 麥克風 × 鋼琴</title>
+    <title>Spike · 麥克風 × 鋼琴(第 2 輪)</title>
     <style>
       :root { color-scheme: dark; }
       * { box-sizing: border-box; }
@@ -45,21 +45,30 @@
   </head>
   <body>
     <main>
-      <h1>Spike · 麥克風 × 鋼琴</h1>
-      <p class="sub">丟棄式測試頁,不是正式功能。目的:確認在 iPhone 上「一邊播鋼琴、一邊開麥克風」會不會出問題。測完按最下方「複製結果」貼回給 Claude。</p>
+      <h1>Spike · 麥克風 × 鋼琴(第 2 輪)</h1>
+      <p class="sub">丟棄式測試頁,不是正式功能。第 1 輪發現:開麥後鋼琴會變小聲,而且關麥也不會恢復。這一輪找出能讓音量恢復的方法,並測藍牙耳機。測完按最下方「複製結果」貼回給 Claude。</p>
 
       <section>
         <h2>測試步驟</h2>
+        <p style="margin:0 0 6px"><b>第一部分:恢復法(不戴耳機)</b></p>
         <ol>
-          <li><b>不戴耳機</b>,按「① 播放鋼琴」。聽音量、試切靜音開關 → 回答 Q1、Q2。</li>
-          <li>鋼琴繼續播,按「② 開啟麥克風」並允許權限。聽聲音有沒有變小、跑到聽筒、靜音開關還有沒有效 → Q3–Q5。</li>
-          <li>按「重算」,<b>完全不出聲約 10 秒</b>,讀「收到鋼琴聲」(Q6)。<b>不要跟著鋼琴唱</b>——唱一樣的音也會被算進去。</li>
-          <li>再唱一個長音(和鋼琴不同的音),看讀數穩不穩、準不準(Q7)。</li>
-          <li>按「③ 關閉麥克風」,聽聲音有沒有恢復 → Q8。</li>
-          <li>有耳機的話:戴<b>有線耳機</b>重做(Q9),再戴<b>藍牙耳機</b>重做(Q10)。<b>每換一種情境,先關麥克風再重開</b>,每段數字會各自記進紀錄。</li>
-          <li>藍牙耳機那段,留意紀錄裡「麥克風取得」是耳機的麥克風還是手機的。</li>
+          <li>按「① 播放鋼琴」,記住<b>正常音量</b>。</li>
+          <li>按「② 開啟麥克風」→「③ 關閉麥克風」,確認鋼琴<b>變小聲</b>(P1)。</li>
+          <li>按「A」,聽音量有沒有恢復(A1)。</li>
+          <li>如果恢復了,再按 ② → ③ 讓它重新變小聲,再試下一個。依序試「B」(B1)、「C」(C1)、「D」(D1)。</li>
+          <li>「D」會重新整理頁面,紀錄會保留;整理後請再按 ① 播放鋼琴再聽。</li>
         </ol>
-        <p class="hint">若打開後看到的是正式練唱畫面,請重新整理一次(舊版 Service Worker 尚未更新)。</p>
+        <p style="margin:12px 0 6px"><b>第二部分:有線耳機</b></p>
+        <ol start="6">
+          <li>戴有線耳機,按 ① → ② → ③,然後<b>拔掉耳機</b>,聽喇叭音量正不正常(W1)。</li>
+        </ol>
+        <p style="margin:12px 0 6px"><b>第三部分:藍牙耳機</b></p>
+        <ol start="7">
+          <li>連上藍牙耳機,按 ① → ②。</li>
+          <li>按「重算」,<b>完全不出聲約 10 秒</b>,再按一次「重算」(BT1)。</li>
+          <li>唱一個<b>和鋼琴不同的</b>長音,看讀數(BT2);同時聽鋼琴音質(BT3)。最後按 ③。</li>
+        </ol>
+        <p class="hint">若打開後看到的是正式練唱畫面,或標題沒有「第 2 輪」,請重新整理一次(舊版 Service Worker 尚未更新)。</p>
       </section>
 
       <section>
@@ -68,7 +77,7 @@
           <label><input type="checkbox" id="opt-ec" /> echoCancellation(回音消除)</label>
           <label><input type="checkbox" id="opt-ns" /> noiseSuppression(降噪)</label>
           <label><input type="checkbox" id="opt-agc" /> autoGainControl(自動增益)</label>
-          <p class="hint">預設全關(調音器的標準設定)。iOS 開啟回音消除可能改變聲音路由,有餘力可兩種都測。改設定後要先關再開麥克風才生效。</p>
+          <p class="hint">預設全關(調音器的標準設定)。這一輪維持全關即可。</p>
         </div>
         <div class="btns" style="margin-top:10px">
           <button id="btn-piano" class="primary">① 播放鋼琴</button>
@@ -76,6 +85,17 @@
           <button id="btn-mic" class="primary">② 開啟麥克風</button>
           <button id="btn-mic-stop" disabled>③ 關閉麥克風</button>
         </div>
+      </section>
+
+      <section>
+        <h2>恢復法(由輕到重)</h2>
+        <div class="btns">
+          <button id="btn-rec-a">A. audioSession<br /><small>設為 playback</small></button>
+          <button id="btn-rec-b">B. 重播無聲音軌</button>
+          <button id="btn-rec-c">C. 重建 AudioContext</button>
+          <button id="btn-rec-d">D. 重新整理頁面</button>
+        </div>
+        <p class="hint">「A」反灰表示這個瀏覽器不支援 Audio Session API,A1 請選「沒測」。</p>
       </section>
 
       <section>
@@ -88,6 +108,7 @@
           <dt>收到鋼琴聲</dt><dd><span id="r-echo">—</span> <button id="btn-echo-reset" style="padding:2px 8px;font-size:12px">重算</button></dd>
           <dt>偵測耗時</dt><dd id="r-cost">—</dd>
           <dt>AudioContext</dt><dd id="r-ctx">—</dd>
+          <dt>Audio Session</dt><dd id="r-session">—</dd>
         </dl>
         <p class="hint">「收到鋼琴聲」= 鋼琴在播時,偵測到的音剛好是鋼琴正在彈的音的比例。不出聲時若很高,代表麥克風收到的是鋼琴而不是你。按「重算」或關麥克風時,本段數字會寫進事件紀錄。</p>
       </section>
@@ -100,6 +121,7 @@
       <section>
         <h2>結果</h2>
         <button id="btn-copy" class="primary" style="width:100%">複製結果</button>
+        <button id="btn-clear" style="width:100%;margin-top:8px">清除紀錄重來</button>
         <textarea id="report" readonly placeholder="按上方按鈕產生"></textarea>
       </section>
 
